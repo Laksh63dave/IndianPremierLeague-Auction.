@@ -1,8 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import { Zap, Trophy, ClipboardList, LayoutGrid, ChevronLeft, Users } from "lucide-react";
-import playersData from "../players";
-import { shuffleArray } from "../shuffle";
+import playersData from "@/players";
+import { shuffleArray } from "@/shuffle";
 
 const fontStyle = {
   fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", "Helvetica Neue", sans-serif',
