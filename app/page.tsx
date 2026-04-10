@@ -116,12 +116,18 @@ export default function Home() {
     const aiTeams = teams.filter((t) => !t.isUser);
     const ai = aiTeams[Math.floor(Math.random() * aiTeams.length)];
     if (!canAddPlayer(ai, player)) return;
+    
+    // AI shouldn't bid if they are already leading
+    if (currentBidder === ai.name) return;
+
     let increment = 0.25;
     if (bid >= 10 && bid < 20) increment = 0.5;
     else if (bid >= 20) increment = 1;
+    
     let chance = 0.2;
     if (player.base === 2) chance += 0.4;
     else if (player.base === 1) chance += 0.2;
+    
     const count = ai.squad.filter((p: any) => p.role === player.role).length;
     if (
       (player.role === "Batsman" && count < 5) ||
@@ -131,11 +137,14 @@ export default function Home() {
     ) {
       chance += 0.25;
     }
+    
     if (ai.purse > 70) chance += 0.1;
     if (ai.purse < 30) chance -= 0.2;
+    
     const maxLimit = player.base * 5;
     if (bid >= maxLimit) return;
     if (Math.random() < 0.3) return;
+    
     const delay = timer <= 3 ? Math.random() * 500 : 800 + Math.random() * 800;
     const timeout = setTimeout(() => {
       const willBid = Math.random() < chance;
@@ -147,23 +156,30 @@ export default function Home() {
       }
     }, delay);
     return () => clearTimeout(timeout);
-  }, [bid, index, timer]);
+  }, [bid, index, timer, currentBidder]);
 
   const increaseBid = () => {
     const user = teams.find((t) => t.isUser);
     if (!user) return;
+
+    // FIX: Don't allow user to bid if they are already the highest bidder
+    if (currentBidder === user.name) return;
+
     const currentPlayer = players[index];
     if (!canAddPlayer(user, currentPlayer)) {
       alert("Overseas limit full 🌍");
       return;
     }
+
     let increment = 0.25;
     if (bid >= 10 && bid < 20) increment = 0.5;
     else if (bid >= 20) increment = 1;
+
     if (user.purse < increment) {
       alert("paise nahi hai dalle 💸");
       return;
     }
+
     setBid((prev: number) => +(prev + increment).toFixed(2));
     setCurrentBidder(user.name);
     setTimer(10);
@@ -178,7 +194,7 @@ export default function Home() {
       setSoldPlayer({ ...current, price: bid });
       setTeams((prev) =>
         prev.map((t) => {
-          if (t.name === currentBidder && canAddPlayer(t, current)) {
+          if (t.name === currentBidder) {
             return { ...t, purse: +(t.purse - bid).toFixed(2), squad: [...t.squad, { ...current, price: bid }] };
           }
           return t;
@@ -334,10 +350,21 @@ export default function Home() {
                   <div className="text-6xl font-black text-green-400 mb-8 tabular-nums tracking-tighter">₹{bid} Cr</div>
                   <div className="mb-8 min-h-[36px] flex items-center justify-center gap-3">
                     {currentBidder && <img src={teamLogos[currentBidder]} className="w-7 h-7 object-contain drop-shadow-lg" />}
-                    <span className={`text-lg font-bold tracking-tight ${currentBidder ? "text-white" : "text-gray-600"}`}>{currentBidder || "Awaiting Bids..."}</span>
+                    <span className={`text-lg font-bold tracking-tight ${currentBidder ? "text-white" : "text-gray-600"}`}>{currentBidder === userTeam?.name ? "You are leading" : (currentBidder || "Awaiting Bids...")}</span>
                   </div>
-                  <button onClick={increaseBid} className="px-14 py-4 rounded-2xl font-black text-lg hover:scale-[1.02] active:scale-[0.98] transition-all text-white shadow-xl" style={{ background: currentBidder ? `linear-gradient(135deg, ${teamColors[currentBidder]}, #000)` : "linear-gradient(135deg, #ff0381, #dc2626)", boxShadow: currentBidder ? `0 15px 30px ${teamColors[currentBidder]}44` : "0 15px 30px rgba(255, 0, 128, 0.2)" }}>
-                    💲 BID ₹{bid + (bid >= 20 ? 1 : bid >= 10 ? 0.5 : 0.25)} Cr
+                  
+                  {/* UPDATE: The Bid Button now disables if the user is leading */}
+                  <button 
+                    onClick={increaseBid} 
+                    disabled={currentBidder === userTeam?.name || sold}
+                    className={`px-14 py-4 rounded-2xl font-black text-lg transition-all text-white shadow-xl 
+                      ${currentBidder === userTeam?.name ? "opacity-50 cursor-not-allowed" : "hover:scale-[1.02] active:scale-[0.98]"}`}
+                    style={{ 
+                      background: currentBidder ? `linear-gradient(135deg, ${teamColors[currentBidder]}, #000)` : "linear-gradient(135deg, #ff0381, #dc2626)", 
+                      boxShadow: currentBidder ? `0 15px 30px ${teamColors[currentBidder]}44` : "0 15px 30px rgba(255, 0, 128, 0.2)" 
+                    }}
+                  >
+                    {currentBidder === userTeam?.name ? "✅ LEADING" : `💲 BID ₹${(bid + (bid >= 20 ? 1 : bid >= 10 ? 0.5 : 0.25)).toFixed(2)} Cr`}
                   </button>
                 </div>
             )}
