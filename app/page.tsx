@@ -117,7 +117,6 @@ export default function Home() {
     const ai = aiTeams[Math.floor(Math.random() * aiTeams.length)];
     if (!canAddPlayer(ai, player)) return;
     
-    // AI shouldn't bid if they are already leading
     if (currentBidder === ai.name) return;
 
     let increment = 0.25;
@@ -161,8 +160,6 @@ export default function Home() {
   const increaseBid = () => {
     const user = teams.find((t) => t.isUser);
     if (!user) return;
-
-    // FIX: Don't allow user to bid if they are already the highest bidder
     if (currentBidder === user.name) return;
 
     const currentPlayer = players[index];
@@ -227,16 +224,20 @@ export default function Home() {
   const userCounts = userTeam ? getRoleCounts(userTeam.squad) : { Batsman: 0, Bowler: 0, "All-rounder": 0, Wicketkeeper: 0 };
   const isSquadValid = userCounts.Batsman >= 5 && userCounts.Bowler >= 4 && userCounts["All-rounder"] >= 4 && userCounts.Wicketkeeper >= 2;
 
+  // Form validation helper
+  const isFormValid = playerName.trim() !== "" && selectedTeamUI !== "";
+
   if (!selectedTeam) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4" style={fontStyle}>
-        <div className="w-full max-w-2xl bg-[#0D0D0D] rounded-2xl p-6">
+        <div className="w-full max-w-2xl bg-[#0D0D0D] rounded-2xl p-6 border border-white/5">
           <div className="mb-6">
             <label className="text-gray-400 text-sm">Your Name</label>
             <input
+              placeholder="Enter your name"
               value={playerName}
               onChange={(e) => setPlayerName(e.target.value)}
-              className="w-full mt-2 bg-[#1A1A1A] p-4 rounded-xl text-white outline-none"
+              className="w-full mt-2 bg-[#1A1A1A] p-4 rounded-xl text-white outline-none focus:ring-1 focus:ring-amber-500/50 transition-all"
             />
           </div>
           <div className="mb-6">
@@ -247,9 +248,9 @@ export default function Home() {
                   key={team.code}
                   onClick={() => setSelectedTeamUI(team.code)}
                   className={`w-12 h-12 rounded-full text-xs font-bold transition-all ${
-                    selectedTeamUI === team.code ? "scale-110 ring-2 ring-amber-500" : "hover:scale-105"
+                    selectedTeamUI === team.code ? "scale-110 ring-2 ring-amber-500 opacity-100" : "hover:scale-105 opacity-40 hover:opacity-100"
                   }`}
-                  style={{ backgroundColor: team.color, boxShadow: selectedTeamUI === team.code ? `0 0 20px ${team.color}` : "none" }}
+                  style={{ backgroundColor: team.color, boxShadow: selectedTeamUI === team.code ? `0 0 20px ${team.color}66` : "none" }}
                 >
                   {team.code}
                 </button>
@@ -258,14 +259,19 @@ export default function Home() {
           </div>
           <div className="flex flex-col gap-3">
             <button
+              disabled={!isFormValid}
               onClick={() => {
                 const team = teamsUI.find(t => t.code === selectedTeamUI);
                 if (team) setSelectedTeam(team.name);
               }}
-              className="w-full bg-gradient-to-r from-amber-500 to-orange-500 py-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:scale-[1.01] transition"
+              className={`w-full py-4 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all duration-300 ${
+                isFormValid 
+                ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:scale-[1.01] shadow-lg shadow-amber-500/20" 
+                : "bg-white/5 text-white/20 cursor-not-allowed border border-white/5"
+              }`}
             >
-              <Zap className="w-5 h-5" />
-              Create Room
+              <Zap className={`w-5 h-5 ${isFormValid ? "animate-pulse" : "opacity-20"}`} />
+              {isFormValid ? "Create Room" : "Complete Details"}
             </button>
             <button
               onClick={() => setShowMultiplayerAlert(true)}
@@ -353,7 +359,6 @@ export default function Home() {
                     <span className={`text-lg font-bold tracking-tight ${currentBidder ? "text-white" : "text-gray-600"}`}>{currentBidder === userTeam?.name ? "You are leading" : (currentBidder || "Awaiting Bids...")}</span>
                   </div>
                   
-                  {/* UPDATE: The Bid Button now disables if the user is leading */}
                   <button 
                     onClick={increaseBid} 
                     disabled={currentBidder === userTeam?.name || sold}
