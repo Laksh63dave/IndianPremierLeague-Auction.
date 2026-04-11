@@ -316,7 +316,14 @@ export default function Home() {
             </div>
             <div className={`px-4 py-1 transition-all ${timer <= 3 ? "bg-red-500/20" : ""}`}>
               <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest block">Timer</span>
-              <span className={`font-bold text-lg leading-tight tabular-nums ${timer <= 3 ? "text-red-400 animate-pulse" : "text-orange-400"}`}>{timer}s</span>
+              <span className={`font-bold text-lg leading-tight tabular-nums ${timer <= 3 ? "text-red-400 animate-pulse" : "text-orange-400"}`}>{timer}s
+                <div className="w-full h-1 mt-2 bg-white/10 rounded-full overflow-hidden">
+                <div
+                className={`h-full ${timer <= 3 ? "bg-red-500" : "bg-orange-400"} transition-all`}
+                style={{ width: `${(timer / 10) * 100}%` }}
+                />
+                </div>
+              </span>
             </div>
             <button onClick={() => setShowReq(true)} className="px-4 py-2 hover:bg-white/5 transition-all border-l border-white/10 text-xs font-bold uppercase flex items-center gap-2">
               <ClipboardList className="w-4 h-4" /> Requirements
@@ -356,7 +363,12 @@ export default function Home() {
                   <div className="text-6xl font-black text-green-400 mb-8 tabular-nums tracking-tighter">₹{bid} Cr</div>
                   <div className="mb-8 min-h-[36px] flex items-center justify-center gap-3">
                     {currentBidder && <img src={teamLogos[currentBidder]} className="w-7 h-7 object-contain drop-shadow-lg" />}
-                    <span className={`text-lg font-bold tracking-tight ${currentBidder ? "text-white" : "text-gray-600"}`}>{currentBidder === userTeam?.name ? "You are leading" : (currentBidder || "Awaiting Bids...")}</span>
+                    <span
+                    className="text-lg font-bold tracking-tight flex items-center gap-2"
+                    style={{ color: currentBidder ? teamColors[currentBidder] : "#666" }}
+                    >
+                    {currentBidder ? ` is leading 🔥` : "Awaiting Bids..."}
+                    </span>
                   </div>
                   
                   <button 
@@ -376,13 +388,47 @@ export default function Home() {
           </div>
 
           <div className="w-1/5 p-4 rounded-2xl bg-white/5 border border-white/10 h-[78vh] overflow-y-auto">
+            <div className="flex items-center gap-2.5 px-3 py-3 bg-gradient-to-br from-white/[0.06] to-white/[0.02] rounded-xl border border-white/10 mb-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] hover:bg-white/[0.08] hover:scale-[1.02] transition-all duration-300">
+            <div className="relative">
+            <div className="w-11 h-11 rounded-full bg-black flex items-center justify-center border border-white/10 overflow-hidden"
+            style={{
+              boxShadow: userTeam?.name 
+              ? `0 0 18px ${teamColors[userTeam.name]}55` 
+              : "0 0 10px rgba(255,255,255,0.05)"
+            }}
+            >
+            {userTeam?.name && (
+              <img src={teamLogos[userTeam.name]} className="w-7 h-7 object-contain" alt="team" />
+              )}
+            </div>
+            
+            </div>
+            
+            <div className="flex flex-col text-left overflow-hidden leading-tight">
+              <span className="text-[13px] font-semibold text-white truncate">
+                {playerName || "Team Owner"}
+              </span>
+              <span className="text-[10px] text-gray-400 font-medium">
+                {userTeam?.name && `- ${userTeam.name}`}
+              </span>
+              </div>
+            </div>
+
             <div className="flex items-center gap-2 mb-3 border-b border-white/5 pb-2">
               {userTeam?.name && <img src={teamLogos[userTeam.name]} className="w-4 h-4 object-contain" />}
               <h2 className="text-gray-500 text-[10px] font-bold uppercase truncate">My Squad ({userTeam?.squad.length})</h2>
             </div>
             {userTeam?.squad.map((p: any, i: number) => (
-              <div key={i} className="text-[11px] py-1.5 flex justify-between border-b border-white/5 font-medium items-center">
-                <span className="truncate pr-2 text-gray-300">{p.name}</span>
+              <div key={i} className="text-[11px] py-2 px-2 flex justify-between items-center rounded-lg hover:bg-white/5 transition border border-white/5">
+                <span className="truncate pr-2 text-gray-300 flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full ${
+                    p.role === "Batsman" ? "bg-blue-400" :
+                    p.role === "Bowler" ? "bg-red-400" :
+                    p.role === "All-rounder" ? "bg-green-400" :
+                    "bg-yellow-400"
+                    }`} />
+                    {p.name}
+                  </span>
                 <span className="text-green-400 font-bold tabular-nums">₹{p.price}Cr</span>
               </div>
             ))}
