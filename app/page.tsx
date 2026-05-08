@@ -1,6 +1,6 @@
 "use client";
-import { useState, useEffect } from "react";
-import { Zap, Trophy, ClipboardList, LayoutGrid, ChevronLeft, Users } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Zap, Trophy, ClipboardList, LayoutGrid, ChevronLeft, Users, Search } from "lucide-react";
 import playersData from "@/players";
 import { shuffleArray } from "@/shuffle";
 
@@ -69,6 +69,12 @@ export default function Home() {
   const [showReq, setShowReq] = useState(false);
   const [auctionEnded, setAuctionEnded] = useState(false);
   const [showMultiplayerAlert, setShowMultiplayerAlert] = useState(false);
+  const [showSetIntro, setShowSetIntro] = useState(false);
+  const [currentSet, setCurrentSet] = useState("");
+
+  // New Search & Modal state
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showUnsoldModal, setShowUnsoldModal] = useState(false);
 
   const canAddPlayer = (team: any, player: any) => {
     if (team.squad.length >= 15) return false;
@@ -85,6 +91,21 @@ export default function Home() {
       Wicketkeeper: squad.filter(p => p.role === "Wicketkeeper").length,
     };
   };
+
+  const filteredPool = useMemo(() => {
+    const filtered = playersData.filter(p => 
+      p.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+      !teams.some(t => t.squad.some((s: any) => s.name === p.name))
+    );
+    
+    // Grouping logic for Search Sidebar
+    return {
+      Batsmen: filtered.filter(p => p.role === "Batsman"),
+      Wicketkeepers: filtered.filter(p => p.role === "Wicketkeeper"),
+      AllRounders: filtered.filter(p => p.role === "All-rounder"),
+      Bowlers: filtered.filter(p => p.role === "Bowler"),
+    };
+  }, [searchTerm, teams]);
 
   useEffect(() => {
     if (!selectedTeam) return;
@@ -154,7 +175,7 @@ export default function Home() {
         setHasBid(true);
       }
     }, delay);
-    return () => clearTimeout(timeout);
+    return () => { if (timeout) clearTimeout(timeout); };
   }, [bid, index, timer, currentBidder]);
 
   const increaseBid = () => {
@@ -164,7 +185,7 @@ export default function Home() {
 
     const currentPlayer = players[index];
     if (!canAddPlayer(user, currentPlayer)) {
-      alert("Overseas limit full 🌍");
+      alert("aur kitne players lega dalle !!");
       return;
     }
 
@@ -202,13 +223,33 @@ export default function Home() {
       setUnsoldPlayers((prev) => [...prev, current]);
     }
 
-    setTimeout(() => {
+    window.setTimeout(() => {
       if (index + 1 >= players.length) {
         setAuctionEnded(true);
         setSold(false);
         return;
       }
       const nextIndex = index + 1;
+      const nextPlayer = players[nextIndex];
+      const prevPlayer = players[index];
+      
+      // Agar set change ho raha hai toh intro dikhao
+      if (nextPlayer.set !== prevPlayer.set) {
+        setCurrentSet(nextPlayer.set);
+        setShowSetIntro(true);
+        
+      // 3 second baad intro hatado aur bidding shuru karo
+        setTimeout(() => {
+          setShowSetIntro(false);
+          updatePlayerState(nextIndex);
+        }, 3000);
+      } else {
+        updatePlayerState(nextIndex);
+      }
+    }, 2000);
+    
+    // Ek helper function taaki code repeat na ho
+    const updatePlayerState = (nextIndex: number) => {
       setIndex(nextIndex);
       setBid(players[nextIndex]?.base || 2);
       setSold(false);
@@ -216,7 +257,7 @@ export default function Home() {
       setTimer(10);
       setHasBid(false);
       setCurrentBidder(null);
-    }, 2000);
+    };
   };
 
   const userTeam = teams.find((t) => t.isUser);
@@ -224,7 +265,6 @@ export default function Home() {
   const userCounts = userTeam ? getRoleCounts(userTeam.squad) : { Batsman: 0, Bowler: 0, "All-rounder": 0, Wicketkeeper: 0 };
   const isSquadValid = userCounts.Batsman >= 5 && userCounts.Bowler >= 4 && userCounts["All-rounder"] >= 4 && userCounts.Wicketkeeper >= 2;
 
-  // Form validation helper
   const isFormValid = playerName.trim() !== "" && selectedTeamUI !== "";
 
   if (!selectedTeam) {
@@ -331,15 +371,47 @@ export default function Home() {
             <button onClick={() => { setShowTeamsModal(true); setViewingTeam(null); }} className="px-4 py-2 hover:bg-white/5 transition-all border-l border-white/10 text-xs font-bold uppercase flex items-center gap-2">
               <LayoutGrid className="w-4 h-4" /> Teams
             </button>
+            <button onClick={() => setShowUnsoldModal(true)} className="px-4 py-2 hover:bg-white/5 transition-all border-l border-white/10 text-xs font-bold uppercase flex items-center gap-2">
+              <Zap className="w-4 h-4" /> Unsold
+            </button>
           </div>
         </div>
 
         <div className="max-w-[1400px] mx-auto flex gap-4">
-          <div className="w-1/5 p-4 rounded-2xl bg-white/5 border border-white/10 h-[78vh] overflow-y-auto">
-            <h2 className="text-gray-400 mb-3 text-xs font-bold uppercase tracking-widest">❌ Unsold</h2>
-            {unsoldPlayers.map((p, i) => (
-              <div key={i} className="text-xs text-gray-400 mb-1.5 font-medium pb-1 border-b border-white/5">{p.name}</div>
-            ))}
+          {/* SEARCH SIDEBAR - Grouped Sections */}
+          <div className="w-1/5 p-4 rounded-2xl bg-white/5 border border-white/10 h-[78vh] flex flex-col overflow-hidden">
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+              <input 
+                type="text" 
+                placeholder="Search players..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl py-2 pl-10 pr-4 text-xs outline-none focus:border-amber-500 transition text-white"
+              />
+            </div>
+            
+            <div className="flex-1 overflow-y-auto pr-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden space-y-4">
+              {Object.entries(filteredPool).map(([role, list]) => (
+                list.length > 0 && (
+                  <div key={role} className="flex flex-col">
+                    <h3 className="text-[10px] text-amber-500/80 font-black uppercase tracking-widest mb-2 border-l-2 border-amber-500 pl-2">
+                      {role}
+                    </h3>
+                    <div className="space-y-1">
+                      {list.map((p: any, i: number) => (
+                        <div key={i} className="flex items-center justify-between group py-1.5 border-b border-white/5">
+                          <span className="text-[11px] text-gray-400 font-medium truncate">{p.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              ))}
+              {Object.values(filteredPool).every(l => l.length === 0) && (
+                <p className="text-gray-600 text-xs text-center py-10 italic">No players found</p>
+              )}
+            </div>
           </div>
 
           <div className="flex-1 flex items-center justify-center">
@@ -359,7 +431,19 @@ export default function Home() {
                     {player?.role}
                   </div>
                   <h1 className="text-4xl font-bold mb-1 tracking-tighter text-white">{player?.name}</h1>
-                  <div className="text-gray-500 mb-6 text-sm font-semibold tracking-tight">⭐ {player?.rating} Rating </div>
+                  
+                  <div className="flex items-center justify-center gap-4 mb-6 mt-3">
+                    <div className="bg-white/5 px-3 py-1 rounded-full border border-white/5">
+                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">⭐ {player?.rating} Rating</span>
+                    </div>
+                    <div className="bg-white/5 px-3 py-1 rounded-full border border-white/5">
+                      <span className="text-[10px] text-gray-400 font-medium uppercase tracking-tight">{player?.style}</span>
+                    </div>
+                    <div className="bg-white/5 px-3 py-1 rounded-full border border-white/5">
+                      <span className="text-[10px] text-gray-300 font-bold uppercase tracking-tight">{player?.country}</span>
+                    </div>
+                  </div>
+
                   <div className="text-6xl font-black text-green-400 mb-8 tabular-nums tracking-tighter">₹{bid} Cr</div>
                   <div className="mb-8 min-h-[36px] flex items-center justify-center gap-3">
                     {currentBidder && <img src={teamLogos[currentBidder]} className="w-7 h-7 object-contain drop-shadow-lg" />}
@@ -367,7 +451,7 @@ export default function Home() {
                     className="text-lg font-bold tracking-tight flex items-center gap-2"
                     style={{ color: currentBidder ? teamColors[currentBidder] : "#666" }}
                     >
-                    {currentBidder ? ` is leading 🔥` : "Awaiting Bids..."}
+                    {currentBidder ? ` is leading.` : "Awaiting Bids..."}
                     </span>
                   </div>
                   
@@ -387,7 +471,7 @@ export default function Home() {
             )}
           </div>
 
-          <div className="w-1/5 p-4 rounded-2xl bg-white/5 border border-white/10 h-[78vh] overflow-y-auto">
+          <div className="w-1/5 p-4 rounded-2xl bg-white/5 border border-white/10 h-[78vh] overflow-y-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <div className="flex items-center gap-2.5 px-3 py-3 bg-gradient-to-br from-white/[0.06] to-white/[0.02] rounded-xl border border-white/10 mb-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] hover:bg-white/[0.08] hover:scale-[1.02] transition-all duration-300">
             <div className="relative">
             <div className="w-11 h-11 rounded-full bg-black flex items-center justify-center border border-white/10 overflow-hidden"
@@ -401,9 +485,7 @@ export default function Home() {
               <img src={teamLogos[userTeam.name]} className="w-7 h-7 object-contain" alt="team" />
               )}
             </div>
-            
             </div>
-            
             <div className="flex flex-col text-left overflow-hidden leading-tight">
               <span className="text-[13px] font-semibold text-white truncate">
                 {playerName || "Team Owner"}
@@ -416,18 +498,18 @@ export default function Home() {
 
             <div className="flex items-center gap-2 mb-3 border-b border-white/5 pb-2">
               {userTeam?.name && <img src={teamLogos[userTeam.name]} className="w-4 h-4 object-contain" />}
-              <h2 className="text-gray-500 text-[10px] font-bold uppercase truncate">My Squad ({userTeam?.squad.length})</h2>
+              <h2 className="text-gray-500 text-[10px] font-bold uppercase truncate">My Squad {userTeam?.squad.length}/15</h2>
             </div>
             {userTeam?.squad.map((p: any, i: number) => (
-              <div key={i} className="text-[11px] py-2 px-2 flex justify-between items-center rounded-lg hover:bg-white/5 transition border border-white/5">
-                <span className="truncate pr-2 text-gray-300 flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full ${
+              <div key={i} className="text-[11px] py-2 px-2 flex justify-between items-center rounded-lg hover:bg-white/5 transition border border-white/5 mb-1">
+                <span className="truncate pr-2 text-gray-300 flex items-center gap-2 text-left">
+                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
                     p.role === "Batsman" ? "bg-blue-400" :
                     p.role === "Bowler" ? "bg-red-400" :
                     p.role === "All-rounder" ? "bg-green-400" :
                     "bg-yellow-400"
                     }`} />
-                    {p.name}
+                    <span className="truncate">{p.name}</span>
                   </span>
                 <span className="text-green-400 font-bold tabular-nums">₹{p.price}Cr</span>
               </div>
@@ -457,11 +539,34 @@ export default function Home() {
       {sold && soldPlayer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl animate-fadeIn" style={fontStyle}>
           <div className="relative px-12 py-8 rounded-[32px] text-center bg-[#0a0a0a] border border-white/10 animate-scaleIn shadow-2xl">
-            <h2 className="text-[10px] font-bold text-gray-500 mb-4 uppercase tracking-[0.4em]">Hammer Down</h2>
+            <h2 className="text-[10px] font-bold text-gray-500 mb-4 uppercase tracking-[0.4em]">sold.</h2>
             {currentBidder && <img src={teamLogos[currentBidder]} className="w-12 h-12 mx-auto mb-4 object-contain" />}
             <p className="text-3xl font-bold mb-1 tracking-tighter text-white">{soldPlayer.name}</p>
             <p className="text-sm text-gray-400 mb-6 font-bold uppercase">{currentBidder || "Unsold"}</p>
             <div className={`text-2xl font-black tabular-nums ${soldPlayer.price === "UNSOLD" ? "text-red-500" : "text-green-400"}`}>{soldPlayer.price === "UNSOLD" ? "❌ UNSOLD" : `₹${soldPlayer.price} Cr`}</div>
+          </div>
+        </div>
+      )}
+
+      {showUnsoldModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md px-4" style={fontStyle}>
+          <div className="relative w-full max-w-md max-h-[75vh] overflow-hidden rounded-[32px] bg-[#0F0F0F] border border-white/10 p-8 shadow-2xl flex flex-col text-white">
+             <div className="flex items-center justify-between mb-6">
+                <h2 className="text-sm font-bold uppercase tracking-widest">Unsold Players</h2>
+                <button onClick={() => setShowUnsoldModal(false)} className="text-gray-500 hover:text-white transition">✕</button>
+             </div>
+             <div className="overflow-y-auto flex-1 pr-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {unsoldPlayers.length > 0 ? (
+                  unsoldPlayers.map((p, i) => (
+                    <div key={i} className="py-3 border-b border-white/5 text-gray-300 text-sm font-medium flex justify-between">
+                      <span>{p.name}</span>
+                      <span className="text-gray-500 text-[10px] font-bold uppercase">{p.country}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-center text-gray-600 py-10 italic">No players are unsold yet.</p>
+                )}
+             </div>
           </div>
         </div>
       )}
@@ -474,7 +579,7 @@ export default function Home() {
               <h2 className="text-sm font-bold text-white uppercase tracking-widest">{viewingTeam ? "Squad" : "Teams"}</h2>
               <button onClick={() => setShowTeamsModal(false)} className="text-gray-500 hover:text-white">✕</button>
             </div>
-            <div className="overflow-y-auto pr-1 flex-1">
+            <div className="overflow-y-auto pr-1 flex-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {!viewingTeam ? (
                 <div className="space-y-2">
                   {teams.sort((a, b) => b.purse - a.purse).map((team, i) => (
@@ -487,11 +592,14 @@ export default function Home() {
               ) : (
                 <div className="animate-fadeIn">
                   <div className="flex flex-col items-center mb-6 py-4 bg-white/5 rounded-2xl border border-white/5 shadow-inner">
-                    <img src={teamLogos[viewingTeam.name]} className="w-10 h-10 object-contain mb-2" /><h3 className="text-lg font-bold tracking-tight">{viewingTeam.name}</h3><p className="text-green-400 font-bold text-sm">₹{viewingTeam.purse} Cr</p>
+                    <img src={teamLogos[viewingTeam.name]} className="w-10 h-10 object-contain mb-2" /><h3 className="text-lg font-bold tracking-tight text-white">{viewingTeam.name}</h3><p className="text-green-400 font-bold text-sm">₹{viewingTeam.purse} Cr</p>
                   </div>
                   <div className="space-y-1.5">
                     {viewingTeam.squad.length > 0 ? viewingTeam.squad.map((p: any, idx: number) => (
-                      <div key={idx} className="flex justify-between items-center bg-white/5 px-4 py-2 rounded-lg border border-white/5 transition hover:bg-white/10"><span className="text-xs text-gray-300 font-medium">{p.name}</span><span className="text-green-400 font-bold text-[11px] tabular-nums">₹{p.price} Cr</span></div>
+                      <div key={idx} className="flex justify-between items-center bg-white/5 px-4 py-2 rounded-lg border border-white/5 transition hover:bg-white/10">
+                        <span className="text-xs text-gray-300 font-medium">{p.name}</span>
+                        <span className="text-green-400 font-bold text-[11px] tabular-nums">₹{p.price} Cr</span>
+                      </div>
                     )) : <p className="text-center text-gray-600 py-10 text-xs italic tracking-wide">No players bought yet.</p>}
                   </div>
                 </div>
