@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
-import { Zap, Trophy, ClipboardList, LayoutGrid, ChevronLeft, Users, Search } from "lucide-react";
+// Added missing icons to the import list
+import { Zap, Trophy, ClipboardList, LayoutGrid, ChevronLeft, Users, Search, Star, ShieldCheck, Banknote, Target, Laptop, Briefcase, Boxes, MessageSquare } from "lucide-react";
 import playersData from "@/players";
 import { shuffleArray } from "@/shuffle";
 
@@ -54,7 +55,21 @@ export default function Home() {
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [selectedTeamUI, setSelectedTeamUI] = useState('');
   const [playerName, setPlayerName] = useState('');
-  const [players] = useState(() => shuffleArray(playersData));
+
+  const [showBriefing, setShowBriefing] = useState(false);
+  // FIXED: Added missing state variable
+  const [isCountingDown, setIsCountingDown] = useState(false);
+  const [countdownNum, setCountdownNum] = useState(3);
+  const [auctionStarted, setAuctionStarted] = useState(false);
+  
+  // --- UPDATED: SORTING BY ROLE SLOTS ---
+  const [players] = useState(() => {
+    const roleOrder = ["Batsman", "Wicketkeeper", "All-rounder", "Bowler"];
+    return roleOrder.flatMap(role => 
+      shuffleArray(playersData.filter(p => p.role === role))
+    );
+  });
+
   const [index, setIndex] = useState(0);
   const [bid, setBid] = useState(players[0]?.base || 2);
   const [timer, setTimer] = useState(10);
@@ -69,12 +84,20 @@ export default function Home() {
   const [showReq, setShowReq] = useState(false);
   const [auctionEnded, setAuctionEnded] = useState(false);
   const [showMultiplayerAlert, setShowMultiplayerAlert] = useState(false);
+  
   const [showSetIntro, setShowSetIntro] = useState(false);
-  const [currentSet, setCurrentSet] = useState("");
+  const [currentSet, setCurrentSet] = useState(players[0]?.role || "");
 
-  // New Search & Modal state
   const [searchTerm, setSearchTerm] = useState("");
   const [showUnsoldModal, setShowUnsoldModal] = useState(false);
+
+  const [favorites, setFavorites] = useState<string[]>([]);
+
+  const toggleFavorite = (name: string) => {
+    setFavorites(prev => 
+      prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]
+    );
+  };
 
   const canAddPlayer = (team: any, player: any) => {
     if (team.squad.length >= 15) return false;
@@ -98,7 +121,6 @@ export default function Home() {
       !teams.some(t => t.squad.some((s: any) => s.name === p.name))
     );
     
-    // Grouping logic for Search Sidebar
     return {
       Batsmen: filtered.filter(p => p.role === "Batsman"),
       Wicketkeepers: filtered.filter(p => p.role === "Wicketkeeper"),
@@ -118,8 +140,9 @@ export default function Home() {
     setTeams(initTeams);
   }, [selectedTeam]);
 
+  // FIXED: Gated timer logic by auctionStarted
   useEffect(() => {
-    if (!selectedTeam || auctionEnded) return;
+    if (!auctionStarted || auctionEnded || showSetIntro) return;
     if (timer === 0) {
       sellPlayer();
       return;
@@ -128,10 +151,11 @@ export default function Home() {
       setTimer((prev) => prev - 1);
     }, 1000);
     return () => clearInterval(interval);
-  }, [timer, selectedTeam, auctionEnded]);
+  }, [timer, auctionStarted, auctionEnded, showSetIntro]);
 
+  // FIXED: Gated AI logic by auctionStarted
   useEffect(() => {
-    if (!selectedTeam || teams.length === 0 || auctionEnded) return;
+    if (!auctionStarted || teams.length === 0 || auctionEnded || showSetIntro) return;
     const player = players[index];
     if (!player) return;
     const aiTeams = teams.filter((t) => !t.isUser);
@@ -143,9 +167,25 @@ export default function Home() {
     let increment = 0.25;
     if (bid >= 10 && bid < 20) increment = 0.5;
     else if (bid >= 20) increment = 1;
+
+    let maxLimit = player.base * 2; 
+
+    if (player.rating >= 95) {
+      maxLimit = 24 + Math.random() * 5; 
+    } else if (player.rating >= 92) {
+      maxLimit = 16 + Math.random() * 4; 
+    } else if (player.rating >= 88) {
+      maxLimit = 10 + Math.random() * 3; 
+    } else if (player.rating >= 85) {
+      maxLimit = 7 + Math.random() * 2; 
+    } else {
+      maxLimit = player.base * 3.5; 
+    }
+
+    if (bid >= maxLimit) return;
     
-    let chance = 0.2;
-    if (player.base === 2) chance += 0.4;
+    let chance = 0.25;
+    if (player.base === 2) chance += 0.35;
     else if (player.base === 1) chance += 0.2;
     
     const count = ai.squad.filter((p: any) => p.role === player.role).length;
@@ -155,15 +195,13 @@ export default function Home() {
       (player.role === "All-rounder" && count < 4) ||
       (player.role === "Wicketkeeper" && count < 2)
     ) {
-      chance += 0.25;
+      chance += 0.3;
     }
     
     if (ai.purse > 70) chance += 0.1;
     if (ai.purse < 30) chance -= 0.2;
     
-    const maxLimit = player.base * 5;
-    if (bid >= maxLimit) return;
-    if (Math.random() < 0.3) return;
+    if (Math.random() < 0.2) return;
     
     const delay = timer <= 3 ? Math.random() * 500 : 800 + Math.random() * 800;
     const timeout = setTimeout(() => {
@@ -176,11 +214,11 @@ export default function Home() {
       }
     }, delay);
     return () => { if (timeout) clearTimeout(timeout); };
-  }, [bid, index, timer, currentBidder]);
+  }, [bid, index, timer, currentBidder, showSetIntro, auctionStarted]);
 
   const increaseBid = () => {
     const user = teams.find((t) => t.isUser);
-    if (!user) return;
+    if (!user || showSetIntro) return;
     if (currentBidder === user.name) return;
 
     const currentPlayer = players[index];
@@ -224,31 +262,31 @@ export default function Home() {
     }
 
     window.setTimeout(() => {
-      if (index + 1 >= players.length) {
+      const nextIndex = index + 1;
+      if (nextIndex >= players.length) {
         setAuctionEnded(true);
         setSold(false);
         return;
       }
-      const nextIndex = index + 1;
+
       const nextPlayer = players[nextIndex];
       const prevPlayer = players[index];
       
-      // Agar set change ho raha hai toh intro dikhao
-      if (nextPlayer.set !== prevPlayer.set) {
-        setCurrentSet(nextPlayer.set);
+      if (nextPlayer.role !== prevPlayer.role) {
+        setCurrentSet(nextPlayer.role);
         setShowSetIntro(true);
+        setSold(false);
+        setSoldPlayer(null);
         
-      // 3 second baad intro hatado aur bidding shuru karo
         setTimeout(() => {
           setShowSetIntro(false);
           updatePlayerState(nextIndex);
-        }, 3000);
+        }, 3500);
       } else {
         updatePlayerState(nextIndex);
       }
     }, 2000);
     
-    // Ek helper function taaki code repeat na ho
     const updatePlayerState = (nextIndex: number) => {
       setIndex(nextIndex);
       setBid(players[nextIndex]?.base || 2);
@@ -260,12 +298,37 @@ export default function Home() {
     };
   };
 
+  const startBriefingFlow = () => {
+    const team = teamsUI.find(t => t.code === selectedTeamUI);
+    if (team) {
+      setSelectedTeam(team.name);
+      setShowBriefing(true);
+    }
+  };
+
+  const commenceAuction = () => {
+    setShowBriefing(false);
+    setIsCountingDown(true);
+    let count = 3;
+    const interval = setInterval(() => {
+      count -= 1;
+      if (count === 0) {
+        clearInterval(interval);
+        setIsCountingDown(false);
+        setAuctionStarted(true);
+      } else {
+        setCountdownNum(count);
+      }
+    }, 1000);
+  };
+
   const userTeam = teams.find((t) => t.isUser);
   const player = players[index];
   const userCounts = userTeam ? getRoleCounts(userTeam.squad) : { Batsman: 0, Bowler: 0, "All-rounder": 0, Wicketkeeper: 0 };
   const isSquadValid = userCounts.Batsman >= 5 && userCounts.Bowler >= 4 && userCounts["All-rounder"] >= 4 && userCounts.Wicketkeeper >= 2;
-
   const isFormValid = playerName.trim() !== "" && selectedTeamUI !== "";
+
+  const isFavoriteActive = player && favorites.includes(player.name);
 
   if (!selectedTeam) {
     return (
@@ -300,10 +363,7 @@ export default function Home() {
           <div className="flex flex-col gap-3">
             <button
               disabled={!isFormValid}
-              onClick={() => {
-                const team = teamsUI.find(t => t.code === selectedTeamUI);
-                if (team) setSelectedTeam(team.name);
-              }}
+              onClick={startBriefingFlow}
               className={`w-full py-4 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all duration-300 ${
                 isFormValid 
                 ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:scale-[1.01] shadow-lg shadow-amber-500/20" 
@@ -329,7 +389,7 @@ export default function Home() {
               <Users className="w-12 h-12 text-amber-500 mx-auto mb-4" />
               <h2 className="text-xl font-bold mb-2">Multiplayer Coming Soon</h2>
               <p className="text-gray-400 text-sm leading-relaxed mb-6">
-                Laksh is working on the Firebase integration. Real-time ipl auction with friends is on its way! 🛠️👨‍💻
+                Laksh is working on the multiplayer functionality. Real-time ipl auction with friends is on its way! 👨‍💻
               </p>
               <button 
                 onClick={() => setShowMultiplayerAlert(false)}
@@ -343,6 +403,161 @@ export default function Home() {
       </div>
     );
   }
+
+  if (showBriefing) {
+    return (
+      <div className="min-h-screen bg-[#050505] text-white p-6 md:p-12 overflow-y-auto selection:bg-amber-500/30" style={fontStyle}>
+        <div className="max-w-6xl mx-auto">
+          
+          {/* Header Area - Clean & Spaced */}
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-16 animate-fadeIn">
+            <div className="flex items-center gap-6">
+              <div className="relative group">
+                <div className="absolute -inset-1 bg-gradient-to-b from-pink-500 to-blue-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
+                <div className="relative w-24 h-28 rounded-2xl bg-black border border-white/10 flex items-center justify-center p-4">
+                  <img src={teamLogos[selectedTeam]} className="w-full h-full object-contain" alt="logo" />
+                </div>
+              </div>
+              <div className="text-left">
+                <h1 className="text-5xl font-black tracking-tighter">{playerName}</h1>
+                <p className="text-gray-500 font-bold uppercase tracking-widest text-xs mt-1">owner. • {selectedTeam}</p>
+              </div>
+            </div>
+            <div className="hidden md:block text-right">
+              <div className="text-3xl font-black tabular-nums text-white/10 tracking-tighter">EST. 2008</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+            {/* Card 1 */}
+            <div className="bg-white/[0.03] border border-white/5 p-8 rounded-[32px] hover:bg-white/[0.05] transition-all duration-500 group">
+              <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <Briefcase className="w-6 h-6 text-amber-500" />
+              </div>
+              <h3 className="text-sm font-black tracking-widest uppercase mb-4">Advanced Scouting Features.</h3>
+              <p className="text-gray-400 text-xs leading-relaxed font-medium">
+                Use the Search Sidebar to find your "Target Players." Mark them with a Star to trigger a visual alert when they hit the auction hammer.
+              </p>
+            </div>
+
+            {/* Card 2 */}
+            <div className="bg-white/[0.03] border border-white/5 p-8 rounded-[32px] hover:bg-white/[0.05] transition-all duration-500 group">
+              <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <Banknote className="w-6 h-6 text-amber-500" />
+              </div>
+              <h3 className="text-sm font-black tracking-widest uppercase mb-4">The Vault.</h3>
+              <p className="text-gray-400 text-xs leading-relaxed font-medium">
+                ₹120 Crore in your treasury. Use it wisely; every crore counts. Dominate or save to hunt the legends.
+              </p>
+            </div>
+
+            {/* Card 3 */}
+            <div className="bg-white/[0.03] border border-white/5 p-8 rounded-[32px] hover:bg-white/[0.05] transition-all duration-500 group">
+              <div className="w-12 h-12 bg-red-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <Target className="w-6 h-6 text-red-500" />
+              </div>
+              <h3 className="text-sm font-black tracking-widest uppercase mb-4">Outsmart the AI.</h3>
+              <p className="text-gray-400 text-xs leading-relaxed font-medium">
+                You aren't alone. 9 intelligent AI bots are programmed to steal your players. Beware of the <span className="text-red-400">Last-Second Snatch</span> in the final 2 seconds.
+              </p>
+            </div>
+
+            {/* Card 4 */}
+            <div className="bg-white/[0.03] border border-white/5 p-8 rounded-[32px] hover:bg-white/[0.05] transition-all duration-500 group">
+              <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <Laptop className="w-6 h-6 text-blue-500" />
+              </div>
+              <h3 className="text-sm font-black tracking-widest uppercase mb-4">Dev note.</h3>
+              <p className="text-gray-400 text-xs leading-relaxed font-medium">
+                Built by a fan, for the fans. If you spot a bug or have a "killer feature" idea, your feedback is the fuel that makes this game better.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col lg:flex-row gap-4 mb-16">
+            <div className="flex-1 bg-gradient-to-r from-amber-500/10 to-transparent border border-amber-500/20 p-8 rounded-[32px] flex items-center justify-between">
+              <div className="flex items-center gap-6">
+                <Boxes className="w-10 h-10 text-amber-500/50" />
+                <div className="text-left">
+                  <h3 className="text-xs font-black tracking-[0.3em] uppercase text-amber-500 mb-2">Championship Blueprint</h3>
+                  <div className="flex flex-wrap gap-x-8 gap-y-2">
+                    <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div><span className="text-xs font-bold text-gray-300">Min 15 Players</span></div>
+                    <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div><span className="text-xs font-bold text-gray-300">5 Bat | 2 Wk | 4 All | 4 Bowl</span></div>
+                    <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-red-500"></div><span className="text-xs font-bold text-gray-300">Max 4 Overseas</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="lg:w-1/3 bg-white/[0.03] border border-white/5 p-8 rounded-[32px] flex items-center gap-6">
+               <Zap className="w-8 h-8 text-amber-500/40" />
+               <div className="text-left">
+                 <h3 className="text-[10px] font-black tracking-widest uppercase text-gray-500">Bidding Sequence</h3>
+                 <p className="text-[11px] font-bold text-gray-400 uppercase mt-1">Bat → Wk → All → Bowl</p>
+               </div>
+            </div>
+          </div>
+
+          <div className="flex justify-center">
+            <button 
+              onClick={commenceAuction} 
+              className="group relative inline-flex items-center justify-center px-12 py-6 font-black tracking-[0.2em] text-black bg-amber-500 rounded-2xl overflow-hidden transition-all duration-300 hover:scale-105 active:scale-95 shadow-[0_20px_50px_rgba(245,158,11,0.2)]"
+            >
+              <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-orange-400 to-amber-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <span className="relative uppercase text-lg">start auction.</span>
+              <ChevronLeft className="relative w-5 h-5 ml-2 rotate-180 group-hover:translate-x-1 transition-transform" />
+            </button>
+          </div>
+
+        </div>
+
+        <footer className="max-w-[1400px] mx-auto mt-12 mb-8 px-4" style={fontStyle}>
+          <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="flex flex-col items-center md:items-start">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                <span className="text-white font-bold text-sm uppercase tracking-widest">contact us on.</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-6">
+              <a href="https://github.com/Laksh63dave" target="_blank" className="text-gray-500 hover:text-white transition-all text-xs font-bold uppercase tracking-widest">Github</a>
+              <a href="https://www.instagram.com/lakshhh_63/" target="_blank" className="text-gray-500 hover:text-pink-500 transition-all text-xs font-bold uppercase tracking-widest">Instagram</a>
+              <a href="https://www.linkedin.com/in/lakshdave18/" target="_blank" className="text-gray-500 hover:text-blue-500 transition-all text-xs font-bold uppercase tracking-widest">LinkedIn</a>
+            </div>
+            <div className="text-[10px] text-gray-600 font-medium tracking-tight">© 2026 Laksh Dave. All rights reserved.</div>
+          </div>
+        </footer>
+      </div>
+    );
+  }
+
+  if (isCountingDown) {
+  return (
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center overflow-hidden" style={fontStyle}>
+      {/* Background Shockwave Effect */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-500/10 via-transparent to-transparent animate-pulse"></div>
+      
+      <div className="relative">
+        {/* Shadow Number */}
+        <h1 className="text-[20rem] md:text-[30rem] font-black text-white/[0.03] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 italic scale-150">
+          {countdownNum}
+        </h1>
+        
+        {/* Main Number with Glitchy Shake */}
+        <h1 className="relative text-[12rem] md:text-[20rem] font-black text-white tracking-tighter animate-bounceIn drop-shadow-[0_0_50px_rgba(255,255,255,0.2)]">
+          {countdownNum}
+        </h1>
+      </div>
+
+      <div className="mt-4 flex flex-col items-center gap-2">
+        <div className="h-[2px] w-12 bg-amber-500 animate-width"></div>
+        <p className="text-amber-500 font-black tracking-[0.8em] uppercase text-[10px] animate-pulse">
+          ladies and gentlemen, you're not ready for this!
+        </p>
+      </div>
+    </div>
+  );
+}
 
   return (
     <>
@@ -375,10 +590,12 @@ export default function Home() {
               <Zap className="w-4 h-4" /> Unsold
             </button>
           </div>
+          <div className="bg-amber-500/10 border border-amber-500/20 px-4 py-2 rounded-xl">
+             <span className="text-amber-500 text-[10px] font-black uppercase tracking-widest">Active Set: {player?.role}</span>
+          </div>
         </div>
 
         <div className="max-w-[1400px] mx-auto flex gap-4">
-          {/* SEARCH SIDEBAR - Grouped Sections */}
           <div className="w-1/5 p-4 rounded-2xl bg-white/5 border border-white/10 h-[78vh] flex flex-col overflow-hidden">
             <div className="relative mb-4">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
@@ -402,15 +619,15 @@ export default function Home() {
                       {list.map((p: any, i: number) => (
                         <div key={i} className="flex items-center justify-between group py-1.5 border-b border-white/5">
                           <span className="text-[11px] text-gray-400 font-medium truncate">{p.name}</span>
+                          <button onClick={() => toggleFavorite(p.name)} className="transition-transform active:scale-125">
+                            <Star className={`w-3 h-3 ${favorites.includes(p.name) ? "text-amber-400 fill-amber-400" : "text-gray-600 hover:text-gray-300"}`} />
+                          </button>
                         </div>
                       ))}
                     </div>
                   </div>
                 )
               ))}
-              {Object.values(filteredPool).every(l => l.length === 0) && (
-                <p className="text-gray-600 text-xs text-center py-10 italic">No players found</p>
-              )}
             </div>
           </div>
 
@@ -425,8 +642,22 @@ export default function Home() {
             ) : (
                 <div 
                   className="w-full max-w-lg p-8 rounded-[40px] text-center bg-white/5 backdrop-blur-xl border border-white/10 transition-all duration-500 shadow-2xl"
-                  style={{ boxShadow: currentBidder ? `0 0 40px ${teamColors[currentBidder]}22` : player?.rating > 90 ? "0 0 40px rgba(255, 215, 0, 0.15)" : "none" }}
+                  style={{ 
+                    boxShadow: isFavoriteActive 
+                      ? "0 0 50px rgba(251, 191, 36, 0.3)" 
+                      : currentBidder 
+                        ? `0 0 40px ${teamColors[currentBidder]}22` 
+                        : player?.rating > 90 
+                          ? "0 0 40px rgba(255, 215, 0, 0.15)" 
+                          : "none" 
+                  }}
                 >
+                  {isFavoriteActive && (
+                    <div className="flex justify-center mb-2 animate-pulse">
+                      <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+                    </div>
+                  )}
+
                   <div className={`text-[9px] mb-3 uppercase font-bold tracking-[0.2em] px-3 py-1 inline-block rounded-full ${player?.role === "Batsman" ? "bg-blue-500/20 text-blue-400" : player?.role === "Bowler" ? "bg-red-500/20 text-red-400" : player?.role === "All-rounder" ? "bg-green-500/20 text-green-400" : "bg-yellow-500/20 text-yellow-400"}`}>
                     {player?.role}
                   </div>
@@ -544,6 +775,29 @@ export default function Home() {
             <p className="text-3xl font-bold mb-1 tracking-tighter text-white">{soldPlayer.name}</p>
             <p className="text-sm text-gray-400 mb-6 font-bold uppercase">{currentBidder || "Unsold"}</p>
             <div className={`text-2xl font-black tabular-nums ${soldPlayer.price === "UNSOLD" ? "text-red-500" : "text-green-400"}`}>{soldPlayer.price === "UNSOLD" ? "❌ UNSOLD" : `₹${soldPlayer.price} Cr`}</div>
+          </div>
+        </div>
+      )}
+
+      {/* --- UPDATED: SET INTRO TRANSITION OVERLAY --- */}
+      {showSetIntro && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-3xl animate-fadeIn" style={fontStyle}>
+          <div className="text-center animate-scaleIn">
+            <div className="flex justify-center mb-6">
+               <div className="p-6 rounded-full bg-amber-500/10 border border-amber-500/20">
+                 <Zap className="w-16 h-16 text-amber-500 animate-pulse" />
+               </div>
+            </div>
+            <h2 className="text-gray-500 text-sm font-bold uppercase tracking-[0.5em] mb-2">Set Complete</h2>
+            <h1 className="text-6xl md:text-8xl font-black text-white tracking-tighter mb-4 uppercase">
+              UP NEXT: <span className="text-amber-500">{currentSet}s</span>
+            </h1>
+            <p className="text-gray-400 text-sm font-medium tracking-wide">Strategy badalne ka waqt hai. Specialists are coming up...</p>
+            <div className="mt-10 flex justify-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-amber-500 animate-bounce [animation-delay:-0.3s]"></div>
+              <div className="w-2 h-2 rounded-full bg-amber-500 animate-bounce [animation-delay:-0.15s]"></div>
+              <div className="w-2 h-2 rounded-full bg-amber-500 animate-bounce"></div>
+            </div>
           </div>
         </div>
       )}
