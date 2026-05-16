@@ -37,24 +37,39 @@ const teamColors: any = {
   "Lucknow Super Giants": "#cb165e",
 };
 
+// Custom Franchise Mottos for UI depth
+const teamMottos: Record<string, string> = {
+  "MI": "#Duniya Hila Denge",
+  "CSK": "#Whistle Podu",
+  "RCB": "#Ee Sala Cup Namde",
+  "KKR": "#Korbo Lorbo Jeetbo",
+  "RR": "#Halla Bol",
+  "SRH": "#Orange Army",
+  "DC": "#Roar Macha",
+  "PBKS": "#Bas Jeetna Hai",
+  "GT": "#Aava De",
+  "LSG": "#Gazab Andaz",
+};
+
 export default function Home() {
   const teamsUI = [
-    { code: 'MI', name: 'Mumbai Indians', color: '#004BA0' },
-    { code: 'RR', name: 'Rajasthan Royals', color: '#dd0c83' },
-    { code: 'RCB', name: 'Royal Challengers Bangalore', color: '#ff0000' },
-    { code: 'GT', name: 'Gujarat Titans', color: '#0c2140' },
-    { code: 'DC', name: 'Delhi Capitals', color: '#05a3ff' },
-    { code: 'PBKS', name: 'Punjab Kings', color: '#ed1b1b' },
-    { code: 'CSK', name: 'Chennai Super Kings', color: '#ffd000' },
-    { code: 'SRH', name: 'Sunrisers Hyderabad', color: '#eb5d1b' },
-    { code: 'KKR', name: 'Kolkata Knight Riders', color: '#2e1652' },
-    { code: 'LSG', name: 'Lucknow Super Giants', color: '#cb165e' },
+    { code: 'MI', name: 'Mumbai Indians', color: '#004BA0', bg: '#004BA0' },
+    { code: 'RR', name: 'Rajasthan Royals', color: '#dd0c83', bg: '#dd0c83' },
+    { code: 'RCB', name: 'Royal Challengers Bangalore', color: '#ff0000', bg: '#ff0000' },
+    { code: 'GT', name: 'Gujarat Titans', color: '#0c2140', bg: '#0c2140' },
+    { code: 'DC', name: 'Delhi Capitals', color: '#05a3ff', bg: '#05a3ff' },
+    { code: 'PBKS', name: 'Punjab Kings', color: '#ed1b1b', bg: '#ed1b1b' },
+    { code: 'CSK', name: 'Chennai Super Kings', color: '#ffd000', bg: '#ffd000' },
+    { code: 'SRH', name: 'Sunrisers Hyderabad', color: '#eb5d1b', bg: '#eb5d1b' },
+    { code: 'KKR', name: 'Kolkata Knight Riders', color: '#2e1652', bg: '#2e1652' },
+    { code: 'LSG', name: 'Lucknow Super Giants', color: '#cb165e', bg: '#cb165e' },
   ];
 
   const iplTeams = teamsUI.map(t => t.name);
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [selectedTeamUI, setSelectedTeamUI] = useState('');
   const [playerName, setPlayerName] = useState('');
+  const [hoveredTeamUI, setHoveredTeamUI] = useState<string | null>(null);
 
   const [showBriefing, setShowBriefing] = useState(false);
   // FIXED: Added missing state variable
@@ -117,8 +132,7 @@ export default function Home() {
 
   const filteredPool = useMemo(() => {
     const filtered = playersData.filter(p => 
-      p.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-      !teams.some(t => t.squad.some((s: any) => s.name === p.name))
+      p.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
     
     return {
@@ -127,7 +141,7 @@ export default function Home() {
       AllRounders: filtered.filter(p => p.role === "All-rounder"),
       Bowlers: filtered.filter(p => p.role === "Bowler"),
     };
-  }, [searchTerm, teams]);
+  }, [searchTerm]);
 
   useEffect(() => {
     if (!selectedTeam) return;
@@ -153,7 +167,7 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [timer, auctionStarted, auctionEnded, showSetIntro]);
 
-  // FIXED: Gated AI logic by auctionStarted
+  // --- REWRITTEN AI LOGIC EMBEDDING ALL 6 IPL STRATEGIES ---
   useEffect(() => {
     if (!auctionStarted || teams.length === 0 || auctionEnded || showSetIntro) return;
     const player = players[index];
@@ -168,42 +182,97 @@ export default function Home() {
     if (bid >= 10 && bid < 20) increment = 0.5;
     else if (bid >= 20) increment = 1;
 
-    let maxLimit = player.base * 2; 
+    if (ai.purse < increment) return;
 
+    // 3. Price Elasticity Based on Base Price
+    let maxLimit = player.base * 2; 
     if (player.rating >= 95) {
-      maxLimit = 24 + Math.random() * 5; 
+      maxLimit = player.base >= 10 ? 24 + Math.random() * 5 : 14 + Math.random() * 3; 
     } else if (player.rating >= 92) {
-      maxLimit = 16 + Math.random() * 4; 
+      maxLimit = player.base >= 8 ? 16 + Math.random() * 4 : 11 + Math.random() * 2; 
     } else if (player.rating >= 88) {
-      maxLimit = 10 + Math.random() * 3; 
+      maxLimit = 9 + Math.random() * 2; 
     } else if (player.rating >= 85) {
       maxLimit = 7 + Math.random() * 2; 
     } else {
       maxLimit = player.base * 3.5; 
     }
 
-    if (bid >= maxLimit) return;
-    
     let chance = 0.25;
-    if (player.base === 2) chance += 0.35;
-    else if (player.base === 1) chance += 0.2;
+    if (player.base === 2) chance += 0.2;
+    else if (player.base === 1) chance += 0.1;
     
     const count = ai.squad.filter((p: any) => p.role === player.role).length;
+    const totalSquadCount = ai.squad.length;
+    const neededPlayers = 15 - totalSquadCount;
+
+    // 1. Purse-to-Slot Panic Logic (Future Budgeting)
+    if (neededPlayers > 0) {
+      const averageBudgetPerSlot = ai.purse / neededPlayers;
+      if (averageBudgetPerSlot < 3.5 && player.rating >= 90) {
+        maxLimit = Math.min(maxLimit, ai.purse * 0.4);
+      }
+    }
+    if (ai.purse < 30 && player.rating >= 93) {
+      maxLimit = Math.min(maxLimit, 9.5);
+    }
+
+    // 2. Position Quota & Diminishing Utility
+    const worldClassInRole = ai.squad.filter((p: any) => p.role === player.role && p.rating >= 94).length;
+    if (worldClassInRole >= 2 && player.rating >= 94) {
+      maxLimit *= 0.5;
+      chance -= 0.2;
+    }
+
     if (
       (player.role === "Batsman" && count < 5) ||
       (player.role === "Bowler" && count < 4) ||
       (player.role === "All-rounder" && count < 4) ||
       (player.role === "Wicketkeeper" && count < 2)
     ) {
-      chance += 0.3;
+      chance += 0.35;
+      maxLimit += 1.5;
     }
     
-    if (ai.purse > 70) chance += 0.1;
-    if (ai.purse < 30) chance -= 0.2;
+    // 4. The "Set Inflation" Fatigue
+    const highSpentPlayersInRoom = teams.flatMap(t => t.squad).filter((p: any) => p.price >= 18).length;
+    if (highSpentPlayersInRoom >= 3 && index < players.length * 0.4) {
+      maxLimit *= 0.75;
+      chance -= 0.15;
+    }
+
+    // 5. Squad Deficit Panic Mode (Emergency Bidding)
+    const totalAuctionProgress = index / players.length;
+    let isPanicMode = false;
+    if (totalAuctionProgress >= 0.65) {
+      const isShortOnRole = 
+        (player.role === "Batsman" && count < 5) ||
+        (player.role === "Bowler" && count < 4) ||
+        (player.role === "All-rounder" && count < 4) ||
+        (player.role === "Wicketkeeper" && count < 2);
+
+      if (isShortOnRole) {
+        isPanicMode = true;
+        chance += 0.5;
+        maxLimit = Math.min(ai.purse - (neededPlayers * 0.5), maxLimit + 5);
+      }
+    }
+
+    // 6. The "Rival Purse" Bullying (Aukaat Over-ride)
+    const sortedPurses = [...teams].sort((a, b) => b.purse - a.purse);
+    const top3Teams = sortedPurses.slice(0, 3).map(t => t.name);
+    const isAmirAI = top3Teams.includes(ai.name);
+    const isRoomGareeb = sortedPurses.filter(t => t.name !== ai.name)[0]?.purse < 35;
+
+    if (isAmirAI && isRoomGareeb && ai.purse > 65 && !isPanicMode) {
+      maxLimit += 3.5;
+      chance += 0.2;
+    }
     
+    if (bid >= maxLimit) return;
     if (Math.random() < 0.2) return;
     
-    const delay = timer <= 3 ? Math.random() * 500 : 800 + Math.random() * 800;
+    const delay = timer <= 3 ? Math.random() * 400 : 700 + Math.random() * 800;
     const timeout = setTimeout(() => {
       const willBid = Math.random() < chance;
       if (willBid && ai.purse >= increment) {
@@ -214,7 +283,7 @@ export default function Home() {
       }
     }, delay);
     return () => { if (timeout) clearTimeout(timeout); };
-  }, [bid, index, timer, currentBidder, showSetIntro, auctionStarted]);
+  }, [bid, index, timer, currentBidder, showSetIntro, auctionStarted, teams]);
 
   const increaseBid = () => {
     const user = teams.find((t) => t.isUser);
@@ -330,72 +399,197 @@ export default function Home() {
 
   const isFavoriteActive = player && favorites.includes(player.name);
 
+  // Dynamic context wire ups for theme shifts
+  const selectedTeamData = teamsUI.find((t) => t.code === selectedTeamUI);
+  const activeColor = selectedTeamData ? selectedTeamData.color : '#ea580c'; // Fallback to orange-500
+
+  // --- REPLACED & UPGRADED: SCREEN 1 TEAM SELECT ---
   if (!selectedTeam) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-4" style={fontStyle}>
-        <div className="w-full max-w-2xl bg-[#0D0D0D] rounded-2xl p-6 border border-white/5">
-          <div className="mb-6">
-            <label className="text-gray-400 text-sm">Your Name</label>
+      <div className="min-h-screen bg-[#0c0c0e] text-white flex items-center justify-center p-5 relative overflow-hidden" style={fontStyle}>
+        
+        {/* Dynamic Theme Glow Engine */}
+        <div 
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] rounded-full blur-[140px] pointer-events-none opacity-20 transition-all duration-700" 
+          style={{ backgroundColor: hoveredTeamUI ? teamColors[teamsUI.find(t=>t.code===hoveredTeamUI)?.name || ''] : activeColor }}
+        />
+
+        <div className="relative z-10 w-full max-w-xl">
+ 
+          {/* Header */}
+          <div className="mb-10 text-left">
+            <p 
+              className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.08em] mb-3 transition-colors duration-500"
+              style={{ color: activeColor }}
+            >
+              <span className="inline-block w-5 h-px rounded transition-colors duration-500" style={{ backgroundColor: activeColor }} />
+              IPL Auction 2026
+            </p>
+            <h1 className="text-[38px] font-semibold text-[#f5f5f7] leading-[1.05] tracking-[-0.04em] mb-2">
+              Pick your franchise.
+            </h1>
+            <p className="text-[15px] text-[#86868b] font-normal">Build your dream squad. Rule the auction.</p>
+          </div>
+ 
+          {/* Name input with Signature Overlay Indicator */}
+          <div className="mb-8 text-left relative">
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-[12px] font-medium text-[#86868b] uppercase tracking-[0.04em]">
+                Your name
+              </label>
+              {playerName.trim() !== "" && (
+                <span className="text-[9px] font-black text-gray-600 tracking-widest uppercase animate-fadeIn">
+                  Welcome Captain.
+                </span>
+              )}
+            </div>
             <input
               placeholder="Enter your name"
               value={playerName}
               onChange={(e) => setPlayerName(e.target.value)}
-              className="w-full mt-2 bg-[#1A1A1A] p-4 rounded-xl text-white outline-none focus:ring-1 focus:ring-amber-500/50 transition-all"
+              className="w-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-[20px] rounded-2xl px-5 py-4 text-[15px] text-[#f5f5f7] placeholder-[#3d3d40] outline-none transition-all"
+              style={{ ...fontStyle, borderColor: playerName.trim() !== "" ? `${activeColor}44` : "" }}
             />
           </div>
-          <div className="mb-6">
-            <label className="text-gray-400 text-sm">Choose Your Team</label>
-            <div className="flex flex-wrap gap-3 mt-3">
-              {teamsUI.map((team) => (
-                <button
-                  key={team.code}
-                  onClick={() => setSelectedTeamUI(team.code)}
-                  className={`w-12 h-12 rounded-full text-xs font-bold transition-all ${
-                    selectedTeamUI === team.code ? "scale-110 ring-2 ring-amber-500 opacity-100" : "hover:scale-105 opacity-40 hover:opacity-100"
-                  }`}
-                  style={{ backgroundColor: team.color, boxShadow: selectedTeamUI === team.code ? `0 0 20px ${team.color}66` : "none" }}
-                >
-                  {team.code}
-                </button>
-              ))}
+ 
+          {/* Team grid with Logo Hover Triggers */}
+          <div className="mb-6 text-left">
+            <label className="block text-[12px] font-medium text-[#86868b] uppercase tracking-[0.04em] mb-4">
+              Choose your team
+            </label>
+            <div className="grid grid-cols-5 gap-3">
+              {teamsUI.map((team) => {
+                const active = selectedTeamUI === team.code;
+                const isHovered = hoveredTeamUI === team.code;
+                return (
+                  <button
+                    key={team.code}
+                    onClick={() => setSelectedTeamUI(team.code)}
+                    onMouseEnter={() => setHoveredTeamUI(team.code)}
+                    onMouseLeave={() => setHoveredTeamUI(null)}
+                    className={`relative flex flex-col items-center gap-2 py-4 rounded-2xl transition-all duration-300 overflow-hidden ${
+                      active
+                        ? "border"
+                        : "border border-white/[0.08] hover:border-white/[0.14]"
+                    }`}
+                    style={{
+                      borderColor: active ? activeColor : "",
+                      background: active ? `${activeColor}11` : "rgba(255,255,255,0.03)",
+                      backdropFilter: "blur(05px)",
+                      transform: active ? "translateY(-4px)" : isHovered ? "translateY(-2px)" : undefined,
+                    }}
+                  >
+                    {/* Translucent Logo Watermark Hover Effect */}
+                    <div 
+                      className={`absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 transition-opacity duration-300 ${isHovered || active ? "opacity-[0.08]" : ""}`}
+                    >
+                      <img src={teamLogos[team.name]} className="w-16 h-16 object-contain scale-125" alt="watermark" />
+                    </div>
+
+                    {/* Dynamic top line when selected */}
+                    {active && (
+                      <span className="absolute top-0 left-1/4 right-1/4 h-px rounded-full"
+                        style={{ background: `linear-gradient(90deg,transparent, ${activeColor} ,transparent)` }} />
+                    )}
+                    <div
+                      className="w-11 h-11 rounded-full flex items-center justify-center text-[10px] font-semibold transition-all duration-300 border border-white/5 shadow-md"
+                      style={{ 
+                        background: team.bg, 
+                        color: '#fff', 
+                        transform: active ? "scale(1.1)" : undefined,
+                        boxShadow: active ? `0 0 15px ${activeColor}66` : ""
+                      }}
+                    >
+                      {team.code}
+                    </div>
+                    <span 
+                      className={`text-[10px] font-medium tracking-[0.02em] transition-colors duration-300 ${active ? "font-bold" : "text-[#86868b]"}`}
+                      style={{ color: active ? activeColor : "" }}
+                    >
+                      {team.code}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
-          <div className="flex flex-col gap-3">
+ 
+          {/* Selected team banner with Franchise Mottos */}
+          <div 
+            className="bg-white/[0.03] border border-white/[0.08] backdrop-blur-[20px] rounded-2xl flex items-center justify-between px-5 py-4 mb-6 transition-all duration-500 text-left"
+            style={{ borderColor: selectedTeamData ? `${activeColor}33` : "" }}
+          >
+            {selectedTeamData ? (
+              <>
+                <div className="flex items-center gap-4 animate-fadeIn">
+                  <div 
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-[11px] font-semibold text-white shadow-md border border-white/5 transition-transform duration-500"
+                    style={{ background: selectedTeamData.bg, boxShadow: `0 0 15px ${activeColor}44` }}
+                  >
+                    {selectedTeamData.code}
+                  </div>
+                  <div>
+                    <p className="text-[14px] font-medium text-[#f5f5f7]">{selectedTeamData.name}</p>
+                    {/* Dynamic Franchise Historical Motto Insertion */}
+                    <p className="text-[11px] text-[#86868b] mt-0.5 font-medium transition-colors" style={{ color: `${activeColor}cc` }}>
+                      {teamMottos[selectedTeamData.code]}
+                    </p>
+                  </div>
+                </div>
+                <div 
+                  className="text-right border rounded-xl px-4 py-2 transition-all duration-500"
+                  style={{ backgroundColor: `${activeColor}08`, borderColor: `${activeColor}22` }}
+                >
+                  <p className="text-[9px] font-medium uppercase tracking-[0.06em] text-gray-500">Starting purse</p>
+                  <p className="text-[18px] font-semibold leading-tight transition-colors duration-500" style={{ color: activeColor }}>₹120 Cr</p>
+                </div>
+              </>
+            ) : (
+              <p className="text-[13px] text-[#3d3d40] italic">No team selected yet</p>
+            )}
+          </div>
+ 
+          {/* CTAs with Kinetic State Transitions */}
+          <div className="flex gap-3">
             <button
               disabled={!isFormValid}
               onClick={startBriefingFlow}
-              className={`w-full py-4 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all duration-300 ${
-                isFormValid 
-                ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:scale-[1.01] shadow-lg shadow-amber-500/20" 
-                : "bg-white/5 text-white/20 cursor-not-allowed border border-white/5"
+              className={`flex-1 py-4 rounded-2xl text-[15px] font-medium flex items-center justify-center gap-2 transition-all duration-500 ${
+                isFormValid
+                  ? "text-white hover:brightness-110 active:scale-[0.98] shadow-lg shadow-black/40"
+                  : "bg-white/[0.04] text-white/20 cursor-not-allowed border border-white/[0.06]"
               }`}
+              style={{ backgroundColor: isFormValid ? activeColor : "" }}
             >
-              <Zap className={`w-5 h-5 ${isFormValid ? "animate-pulse" : "opacity-20"}`} />
-              {isFormValid ? "Create Room" : "Complete Details"}
+              <Zap className={`w-4 h-4 ${isFormValid ? "animate-pulse text-white" : "opacity-30"}`} />
+              {isFormValid ? "Start Auction." : "Awaiting Signatures"}
             </button>
             <button
               onClick={() => setShowMultiplayerAlert(true)}
-              className="w-full bg-white/5 border border-white/10 text-white/60 py-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-white/10 hover:text-white transition"
+              className="bg-white/[0.03] border border-white/[0.08] backdrop-blur-[20px] rounded-2xl px-5 py-4 text-[14px] text-[#86868b] hover:text-[#adadb0] flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
-              <Users className="w-5 h-5" />
-              Play With Friends
+              <Users className="w-4 h-4" />
+              Multiplayer
             </button>
           </div>
         </div>
-
+ 
+        {/* Multiplayer modal */}
         {showMultiplayerAlert && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
-            <div className="bg-[#111] border border-white/10 p-8 rounded-3xl max-w-sm w-full text-center shadow-2xl">
-              <Users className="w-12 h-12 text-amber-500 mx-auto mb-4" />
-              <h2 className="text-xl font-bold mb-2">Multiplayer Coming Soon</h2>
-              <p className="text-gray-400 text-sm leading-relaxed mb-6">
-                Laksh is working on the multiplayer functionality. Real-time ipl auction with friends is on its way! 👨‍💻
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm px-4 animate-fadeIn">
+            <div className="bg-[#111] border border-white/10 p-8 rounded-3xl max-w-sm w-full text-center shadow-2xl animate-scaleIn">
+              <div className="w-14 h-14 rounded-full bg-orange-500/10 border border-orange-500/20 flex items-center justify-center mx-auto mb-5">
+                <Users className="w-6 h-6 text-orange-500" />
+              </div>
+              <h2 className="text-[18px] font-semibold text-[#f5f5f7] mb-2">Multiplayer coming soon</h2>
+              <p className="text-[13px] text-[#86868b] leading-relaxed mb-6">
+                Laksh is building real-time multiplayer functionality. Stay Tuned for the Ultimate IPL Auction Experience.
               </p>
-              <button 
+              <button
                 onClick={() => setShowMultiplayerAlert(false)}
-                className="w-full bg-white text-black py-3 rounded-xl font-bold hover:bg-gray-200 transition"
+                className="w-full bg-white/90 text-black py-3 rounded-xl text-[14px] font-medium hover:bg-white transition"
               >
-                Got it, Laksh! 👍
+                Got it
               </button>
             </div>
           </div>
@@ -531,33 +725,34 @@ export default function Home() {
     );
   }
 
+  // --- SCREEN 3: COUNTDOWN ---
   if (isCountingDown) {
-  return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center overflow-hidden" style={fontStyle}>
-      {/* Background Shockwave Effect */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-500/10 via-transparent to-transparent animate-pulse"></div>
-      
-      <div className="relative">
-        {/* Shadow Number */}
-        <h1 className="text-[20rem] md:text-[30rem] font-black text-white/[0.03] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 italic scale-150">
-          {countdownNum}
-        </h1>
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center overflow-hidden" style={fontStyle}>
+        {/* Background Shockwave Effect */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-500/10 via-transparent to-transparent animate-pulse"></div>
         
-        {/* Main Number with Glitchy Shake */}
-        <h1 className="relative text-[12rem] md:text-[20rem] font-black text-white tracking-tighter animate-bounceIn drop-shadow-[0_0_50px_rgba(255,255,255,0.2)]">
-          {countdownNum}
-        </h1>
-      </div>
+        <div className="relative">
+          {/* Shadow Number */}
+          <h1 className="text-[20rem] md:text-[30rem] font-black text-white/[0.03] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 italic scale-150">
+            {countdownNum}
+          </h1>
+          
+          {/* Main Number with Glitchy Shake */}
+          <h1 className="relative text-[12rem] md:text-[20rem] font-black text-white tracking-tighter animate-bounceIn drop-shadow-[0_0_50px_rgba(255,255,255,0.2)]">
+            {countdownNum}
+          </h1>
+        </div>
 
-      <div className="mt-4 flex flex-col items-center gap-2">
-        <div className="h-[2px] w-12 bg-amber-500 animate-width"></div>
-        <p className="text-amber-500 font-black tracking-[0.8em] uppercase text-[10px] animate-pulse">
-          ladies and gentlemen, you're not ready for this!
-        </p>
+        <div className="mt-4 flex flex-col items-center gap-2">
+          <div className="h-[2px] w-12 bg-amber-500 animate-width"></div>
+          <p className="text-amber-500 font-black tracking-[0.8em] uppercase text-[10px] animate-pulse">
+            ladies and gentlemen, you're not ready for this!
+          </p>
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
   return (
     <>
@@ -616,14 +811,35 @@ export default function Home() {
                       {role}
                     </h3>
                     <div className="space-y-1">
-                      {list.map((p: any, i: number) => (
-                        <div key={i} className="flex items-center justify-between group py-1.5 border-b border-white/5">
-                          <span className="text-[11px] text-gray-400 font-medium truncate">{p.name}</span>
-                          <button onClick={() => toggleFavorite(p.name)} className="transition-transform active:scale-125">
-                            <Star className={`w-3 h-3 ${favorites.includes(p.name) ? "text-amber-400 fill-amber-400" : "text-gray-600 hover:text-gray-300"}`} />
-                          </button>
-                        </div>
-                      ))}
+                      {list.map((p: any, i: number) => {
+                        const boughtTeam = teams.find(t => t.squad.some((s: any) => s.name === p.name));
+                        const isPlayerSold = !!boughtTeam;
+                        const soldPrice = boughtTeam?.squad.find((s: any) => s.name === p.name)?.price;
+                        
+                        return (
+                          <div key={i} className={`flex items-center justify-between group py-1.5 border-b border-white/5 ${isPlayerSold ? "opacity-50" : ""}`}>
+                            <div className="flex items-center gap-1.5 max-w-[85%] truncate text-left">
+                              <span className="text-[11px] text-gray-400 font-medium truncate">{p.name}</span>
+                              
+                              {/* TEXT ADDITION: (SOLD - ₹PRICE Cr) */}
+                              {isPlayerSold && (
+                                <span className="text-[10px] font-bold text-red-500/80 flex-shrink-0 tracking-tight">
+                                  (SOLD - ₹{soldPrice}Cr)
+                                </span>
+                              )}
+                            </div>
+                            
+                            {/* SHOW STAR ONLY IF PLAYER IS NOT SOLD */}
+                            {!isPlayerSold ? (
+                              <button onClick={() => toggleFavorite(p.name)} className="transition-transform active:scale-125">
+                                <Star className={`w-3 h-3 ${favorites.includes(p.name) ? "text-amber-400 fill-amber-400" : "text-gray-600 hover:text-gray-300"}`} />
+                              </button>
+                            ) : (
+                              <div className="w-3 h-3" />
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )
