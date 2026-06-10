@@ -51,6 +51,60 @@ const teamMottos: Record<string, string> = {
   "LSG": "#Gazab Andaz",
 };
 
+// Dynamic multiple commentary variants per franchise
+const teamSoldAnthems: Record<string, string[]> = {
+  "Mumbai Indians": [
+    "joins the Paltan! #AalaRe 💙",
+    "is officially blue and gold! #MumbaiIndians 👑",
+    "heads straight into the Wankhede fortress! #DilKholKe ⚡"
+  ],
+  "Chennai Super Kings": [
+    "enters the Yellow Den! #WhistlePodu 💛",
+    "joins the Thala brigade! #Yellove 🦁",
+    "is now locked into the Super Kings dynasty! #CSK 👑"
+  ],
+  "Royal Challengers Bangalore": [
+    "joins the Bold Brigade! #PlayBold ❤️",
+    "is going to rock the Chinnaswamy crowd! #RCB 🚀",
+    "is the newest member of the Red & Gold army! #EeSalaCupNamde 🏆"
+  ],
+  "Kolkata Knight Riders": [
+    "marches into the Knights camp! #KorboLorboJeetbo 💜",
+    "is now part of the purple patch! #AamiKKR ⚔️",
+    "belongs to Eden Gardens now! #KKR 👑"
+  ],
+  "Delhi Capitals": [
+    "joins the Capital Roar! #RoarMacha 💙",
+    "is heading straight to the DC camp! #YehHaiNayiDilli 🐯",
+    "is locked into the Capital squad! #DelhiCapitals ⚡"
+  ],
+  "Punjab Kings": [
+    "is now a proud King! #SaddaPunjab ❤️",
+    "joins the Shers of Punjab! #JazbaHaiFranchise 🦁",
+    "is ready to go dynamic for Punjab! #PBKS 🔴"
+  ],
+  "Rajasthan Royals": [
+    "joins the royal fortress! #HallaBol 💗",
+    "is now a proud Royal! #RajasthanRoyals 👑",
+    "is ready to raise the storm with the pink army! #RR 🐴"
+  ],
+  "Sunrisers Hyderabad": [
+    "steps into the Orange Army dawn! #OrangeArmy 🧡",
+    "is ready to unleash the Hyderabad heat! #SRH 🔥",
+    "joins the rising squad of Hyderabad! #PlayWithFire 🦅"
+  ],
+  "Gujarat Titans": [
+    "is officially a Titan! #AavaDe 💙",
+    "joins the ultimate gritty crew of Gujarat! #GujaratTitans⚡",
+    "is ready to display character for the Titans! #AmeTitans 👑"
+  ],
+  "Lucknow Super Giants": [
+    "joins the Giants squad! #GazabAndaz 💗",
+    "is heading to Lucknow to bring the storm! #LSG 🚀",
+    "is locked into the Super Giants universe! #LucknowSuperGiants 🌟"
+  ],
+};
+
 export default function Home() {
   const teamsUI = [
     { code: 'MI', name: 'Mumbai Indians', color: '#004BA0', bg: '#004BA0' },
@@ -107,6 +161,60 @@ export default function Home() {
   const [showUnsoldModal, setShowUnsoldModal] = useState(false);
 
   const [favorites, setFavorites] = useState<string[]>([]);
+
+  // --- COMMENTARY HUB CONFIGURATION ---
+  const [commentary, setCommentary] = useState<string[]>([
+    "🎙️ Welcome to the IPL 2026 Mega Auction room! The auctioneer has taken the podium. Raise your paddles, captains."
+  ]);
+
+  const commentaryTemplates = {
+    openers: [
+      "And we are underway! {bidder} opens the account for {player}.",
+      "{bidder} raises the paddle immediately. They came prepared for {player}.",
+      "Base price of ₹{bid} Cr met effortlessly by {bidder}.",
+      "{bidder} shows interest first. Let's see who challenges them."
+    ],
+    standard: [
+      "{bidder} counters smoothly at ₹{bid} Cr.",
+      "{bidder} responds quickly, lifting the price to ₹{bid} Cr.",
+      "Bid goes to {bidder} at ₹{bid} Cr. The room stays alert.",
+      "No hesitation from {bidder}, taking it up to ₹{bid} Cr."
+    ],
+    escalation: [
+      "Absolute madness! {bidder} pushes the bid to a massive ₹{bid} Cr!",
+      "No signs of slowing down! {bidder} wants {player} at all costs.",
+      "The crowd is buzzing! {bidder} aggressively raises it to ₹{bid} Cr.",
+      "Stakes are getting high! {bidder} stakes a claim at ₹{bid} Cr."
+    ],
+    snipe: [
+      "🚨 CRUNCH TIME! A dramatic late push by {bidder} at ₹{bid} Cr with just {timer}s left!",
+      "OH! A massive tactical snipe by {bidder} right on the clock!",
+      "Unbelievable drama! Just as the gavel was rising, {bidder} sneaks in at ₹{bid} Cr!"
+    ],
+    bullying: [
+      "Financial muscle flex! {bidder} is completely dominant right now at ₹{bid} Cr.",
+      "Classic bullying tactics from {bidder}. They are pricing everyone else out.",
+      "Power move by {bidder}! They are refusing to let anyone else breathe in this set."
+    ],
+    sold: [
+      "🔨 HAMMER DOWN! {player} {anthem} (₹{bid} Cr)",
+      "SOLD! {player} officially {anthem} for ₹{bid} Cr!",
+      "It's locked in! {player} {anthem} at a final price of ₹{bid} Cr."
+    ],
+    unsold: [
+      "❌ Silence in the room... {player} goes completely unsold at ₹{base} Cr.",
+      "No takers. {player} returns to the deck completely unsold.",
+      "The hammer falls. {player} remains unsold for this round."
+    ]
+  };
+
+  const parseTemplate = (str: string, replacements: Record<string, string | number>) => {
+    return str.replace(/{(\w+)}/g, (_, key) => replacements[key]?.toString() || "");
+  };
+
+  const logCommentary = (newLine: string) => {
+    setCommentary(prev => [newLine, ...prev].slice(0, 4));
+  };
 
   const toggleFavorite = (name: string) => {
     setFavorites(prev => 
@@ -276,7 +384,33 @@ export default function Home() {
     const timeout = setTimeout(() => {
       const willBid = Math.random() < chance;
       if (willBid && ai.purse >= increment) {
-        setBid((prev: number) => +(prev + increment).toFixed(2));
+        const nextBidValue = +(bid + increment).toFixed(2);
+
+        // --- DYNAMIC AI LIVE COMMENTARY STRATEGY ENGINE ---
+        let selectedPool = commentaryTemplates.standard;
+        const isPanic = timer <= 3;
+        const isEscalating = nextBidValue >= player.base * 2.5;
+        const isDeepPurse = ai.purse > 65;
+
+        if (isPanic) {
+          selectedPool = commentaryTemplates.snipe;
+        } else if (isDeepPurse && Math.random() < 0.4) {
+          selectedPool = commentaryTemplates.bullying;
+        } else if (isEscalating) {
+          selectedPool = commentaryTemplates.escalation;
+        } else if (!hasBid) {
+          selectedPool = commentaryTemplates.openers;
+        }
+
+        logCommentary(parseTemplate(selectedPool[Math.floor(Math.random() * selectedPool.length)], {
+          bidder: ai.name,
+          player: player.name,
+          bid: nextBidValue,
+          timer: timer
+        }));
+        // --------------------------------------------------
+
+        setBid(nextBidValue);
         setCurrentBidder(ai.name);
         setTimer(10);
         setHasBid(true);
@@ -305,7 +439,17 @@ export default function Home() {
       return;
     }
 
-    setBid((prev: number) => +(prev + increment).toFixed(2));
+    const nextBidValue = +(bid + increment).toFixed(2);
+
+    // --- USER COMMENTARY INJECTION ENGINE ---
+    let userTemplate = "{bidder} steps up to the challenge with a bid of ₹{bid} Cr!";
+    if (timer <= 3) userTemplate = "🚨 LAST SECOND PADDLE! {bidder} strikes back at ₹{bid} Cr!";
+    else if (nextBidValue >= currentPlayer.base * 2.5) userTemplate = "The home captain {bidder} isn't backing down! Bid raised to ₹{bid} Cr!";
+    
+    logCommentary(parseTemplate(userTemplate, { bidder: user.name, bid: nextBidValue }));
+    // ----------------------------------------
+
+    setBid(nextBidValue);
     setCurrentBidder(user.name);
     setTimer(10);
     setHasBid(true);
@@ -317,6 +461,19 @@ export default function Home() {
     setSold(true);
     if (hasBid && currentBidder) {
       setSoldPlayer({ ...current, price: bid });
+
+      // --- LOCK CUSTOM SLOGAN SOLD COMMENTARY ---
+      const anthemsPool = teamSoldAnthems[currentBidder] || [`joins ${currentBidder}!`];
+      const randomAnthem = anthemsPool[Math.floor(Math.random() * anthemsPool.length)];
+      
+      const pool = commentaryTemplates.sold;
+      logCommentary(parseTemplate(pool[Math.floor(Math.random() * pool.length)], { 
+        player: current.name, 
+        anthem: randomAnthem, 
+        bid: bid 
+      }));
+      // -------------------------------------------
+
       setTeams((prev) =>
         prev.map((t) => {
           if (t.name === currentBidder) {
@@ -328,6 +485,10 @@ export default function Home() {
     } else {
       setSoldPlayer({ ...current, price: "UNSOLD" });
       setUnsoldPlayers((prev) => [...prev, current]);
+
+      // --- LOCK UNSOLD COMMENTARY ---
+      const pool = commentaryTemplates.unsold;
+      logCommentary(parseTemplate(pool[Math.floor(Math.random() * pool.length)], { player: current.name, base: current.base }));
     }
 
     window.setTimeout(() => {
@@ -350,6 +511,7 @@ export default function Home() {
         setTimeout(() => {
           setShowSetIntro(false);
           updatePlayerState(nextIndex);
+          logCommentary(`📢 A brand new set is underway! Up next: ${nextPlayer.role} specialists.`);
         }, 3500);
       } else {
         updatePlayerState(nextIndex);
@@ -847,7 +1009,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="flex-1 flex items-center justify-center">
+          <div className="flex-1 flex flex-col items-center justify-center">
             {auctionEnded ? (
                 <div className="w-full max-w-lg p-10 rounded-3xl text-center bg-[#0a0a0a] border border-white/10 shadow-2xl">
                     <Trophy className="w-12 h-12 mx-auto mb-4 text-yellow-500" />
@@ -856,65 +1018,103 @@ export default function Home() {
                     <button onClick={() => window.location.reload()} className="bg-white text-black px-10 py-3 rounded-xl font-black hover:scale-105 transition">START NEW</button>
                 </div>
             ) : (
-                <div 
-                  className="w-full max-w-lg p-8 rounded-[40px] text-center bg-white/5 backdrop-blur-xl border border-white/10 transition-all duration-500 shadow-2xl"
-                  style={{ 
-                    boxShadow: isFavoriteActive 
-                      ? "0 0 50px rgba(251, 191, 36, 0.3)" 
-                      : currentBidder 
-                        ? `0 0 40px ${teamColors[currentBidder]}22` 
-                        : player?.rating > 90 
-                          ? "0 0 40px rgba(255, 215, 0, 0.15)" 
-                          : "none" 
-                  }}
-                >
-                  {isFavoriteActive && (
-                    <div className="flex justify-center mb-2 animate-pulse">
-                      <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
-                    </div>
-                  )}
-
-                  <div className={`text-[9px] mb-3 uppercase font-bold tracking-[0.2em] px-3 py-1 inline-block rounded-full ${player?.role === "Batsman" ? "bg-blue-500/20 text-blue-400" : player?.role === "Bowler" ? "bg-red-500/20 text-red-400" : player?.role === "All-rounder" ? "bg-green-500/20 text-green-400" : "bg-yellow-500/20 text-yellow-400"}`}>
-                    {player?.role}
-                  </div>
-                  <h1 className="text-4xl font-bold mb-1 tracking-tighter text-white">{player?.name}</h1>
-                  
-                  <div className="flex items-center justify-center gap-4 mb-6 mt-3">
-                    <div className="bg-white/5 px-3 py-1 rounded-full border border-white/5">
-                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">⭐ {player?.rating} Rating</span>
-                    </div>
-                    <div className="bg-white/5 px-3 py-1 rounded-full border border-white/5">
-                      <span className="text-[10px] text-gray-400 font-medium uppercase tracking-tight">{player?.style}</span>
-                    </div>
-                    <div className="bg-white/5 px-3 py-1 rounded-full border border-white/5">
-                      <span className="text-[10px] text-gray-300 font-bold uppercase tracking-tight">{player?.country}</span>
-                    </div>
-                  </div>
-
-                  <div className="text-6xl font-black text-green-400 mb-8 tabular-nums tracking-tighter">₹{bid} Cr</div>
-                  <div className="mb-8 min-h-[36px] flex items-center justify-center gap-3">
-                    {currentBidder && <img src={teamLogos[currentBidder]} className="w-7 h-7 object-contain drop-shadow-lg" />}
-                    <span
-                    className="text-lg font-bold tracking-tight flex items-center gap-2"
-                    style={{ color: currentBidder ? teamColors[currentBidder] : "#666" }}
-                    >
-                    {currentBidder ? ` is leading.` : "Awaiting Bids..."}
-                    </span>
-                  </div>
-                  
-                  <button 
-                    onClick={increaseBid} 
-                    disabled={currentBidder === userTeam?.name || sold}
-                    className={`px-14 py-4 rounded-2xl font-black text-lg transition-all text-white shadow-xl 
-                      ${currentBidder === userTeam?.name ? "opacity-50 cursor-not-allowed" : "hover:scale-[1.02] active:scale-[0.98]"}`}
+                <>
+                  <div 
+                    className="w-full max-w-lg p-8 rounded-[40px] text-center bg-white/5 backdrop-blur-xl border border-white/10 transition-all duration-500 shadow-2xl"
                     style={{ 
-                      background: currentBidder ? `linear-gradient(135deg, ${teamColors[currentBidder]}, #000)` : "linear-gradient(135deg, #ff0381, #dc2626)", 
-                      boxShadow: currentBidder ? `0 15px 30px ${teamColors[currentBidder]}44` : "0 15px 30px rgba(255, 0, 128, 0.2)" 
+                      boxShadow: isFavoriteActive 
+                        ? "0 0 50px rgba(251, 191, 36, 0.3)" 
+                        : currentBidder 
+                          ? `0 0 40px ${teamColors[currentBidder]}22` 
+                          : player?.rating > 90 
+                            ? "0 0 40px rgba(255, 215, 0, 0.15)" 
+                            : "none" 
                     }}
                   >
-                    {currentBidder === userTeam?.name ? "✅ LEADING" : `💲 BID ₹${(bid + (bid >= 20 ? 1 : bid >= 10 ? 0.5 : 0.25)).toFixed(2)} Cr`}
-                  </button>
-                </div>
+                    {isFavoriteActive && (
+                      <div className="flex justify-center mb-2 animate-pulse">
+                        <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+                      </div>
+                    )}
+
+                    <div className={`text-[9px] mb-3 uppercase font-bold tracking-[0.2em] px-3 py-1 inline-block rounded-full ${player?.role === "Batsman" ? "bg-blue-500/20 text-blue-400" : player?.role === "Bowler" ? "bg-red-500/20 text-red-400" : player?.role === "All-rounder" ? "bg-green-500/20 text-green-400" : "bg-yellow-500/20 text-yellow-400"}`}>
+                      {player?.role}
+                    </div>
+                    <h1 className="text-4xl font-bold mb-1 tracking-tighter text-white">{player?.name}</h1>
+                    
+                    <div className="flex items-center justify-center gap-4 mb-6 mt-3">
+                      <div className="bg-white/5 px-3 py-1 rounded-full border border-white/5">
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">⭐ {player?.rating} Rating</span>
+                      </div>
+                      <div className="bg-white/5 px-3 py-1 rounded-full border border-white/5">
+                        <span className="text-[10px] text-gray-400 font-medium uppercase tracking-tight">{player?.style}</span>
+                      </div>
+                      <div className="bg-white/5 px-3 py-1 rounded-full border border-white/5">
+                        <span className="text-[10px] text-gray-300 font-bold uppercase tracking-tight">{player?.country}</span>
+                      </div>
+                    </div>
+
+                    <div className="text-6xl font-black text-green-400 mb-8 tabular-nums tracking-tighter">₹{bid} Cr</div>
+                    <div className="mb-8 min-h-[36px] flex items-center justify-center gap-3">
+                      {currentBidder && <img src={teamLogos[currentBidder]} className="w-7 h-7 object-contain drop-shadow-lg" />}
+                      <span
+                      className="text-lg font-bold tracking-tight flex items-center gap-2"
+                      style={{ color: currentBidder ? teamColors[currentBidder] : "#666" }}
+                      >
+                      {currentBidder ? ` is leading.` : "Awaiting Bids..."}
+                      </span>
+                    </div>
+                    
+                    <button 
+                      onClick={increaseBid} 
+                      disabled={currentBidder === userTeam?.name || sold}
+                      className={`px-14 py-4 rounded-2xl font-black text-lg transition-all text-white shadow-xl 
+                        ${currentBidder === userTeam?.name ? "opacity-50 cursor-not-allowed" : "hover:scale-[1.02] active:scale-[0.98]"}`}
+                      style={{ 
+                        background: currentBidder ? `linear-gradient(135deg, ${teamColors[currentBidder]}, #000)` : "linear-gradient(135deg, #ff0381, #dc2626)", 
+                        boxShadow: currentBidder ? `0 15px 30px ${teamColors[currentBidder]}44` : "0 15px 30px rgba(255, 0, 128, 0.2)" 
+                      }}
+                    >
+                      {currentBidder === userTeam?.name ? "✅ LEADING" : `💲 BID ₹${(bid + (bid >= 20 ? 1 : bid >= 10 ? 0.5 : 0.25)).toFixed(2)} Cr`}
+                    </button>
+                  </div>
+
+                  {/* --- PREMIUM LIVE BROADCAST COMMENTARY HUB (COMPACT FIXED HEIGHT) --- */}
+                  <div className="w-full max-w-lg mt-5 bg-white/[0.02] border border-white/[0.06] rounded-3xl p-5 backdrop-blur-xl shadow-2xl text-left relative overflow-hidden flex flex-col h-[130px]">
+                    <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-amber-500/20 to-transparent" />
+                    
+                    <div className="flex items-center justify-between mb-3 flex-shrink-0">
+                      <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
+                        <span className="text-[10px] uppercase font-black tracking-[0.15em] text-amber-500/90 font-sans">
+                          🎙️ Live Broadcast Feed
+                        </span>
+                      </div>
+                      <span className="text-[9px] uppercase font-mono text-zinc-600 tracking-wider">
+                        AUCTION ROOM #1
+                      </span>
+                    </div>
+
+                    {/* Content wrapper handles inner overflow cleanly without shifting card sizes */}
+                    <div className="flex-1 overflow-y-auto space-y-2.5 font-sans pr-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                      {commentary.map((line, idx) => (
+                        <div 
+                          key={idx} 
+                          className={`transition-all duration-500 flex items-start gap-2.5 rounded-xl px-2.5 py-1.5 flex-shrink-0 ${
+                            idx === 0 
+                              ? "text-[#f5f5f7] font-medium text-[13px] bg-white/[0.03] border border-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.02)] scale-[1.01]" 
+                              : "text-zinc-500 text-[11px] opacity-50 filter blur-[0.2px]"
+                          }`}
+                        >
+                          <span className={`font-mono mt-0.5 select-none text-[10px] ${idx === 0 ? "text-amber-500" : "text-zinc-700"}`}>
+                            {idx === 0 ? "⚡" : "•"}
+                          </span>
+                          <p className="leading-relaxed flex-1">{line}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
             )}
           </div>
 
