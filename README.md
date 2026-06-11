@@ -1,7 +1,5 @@
 <div align="center">
-
 # 🏏 IPL Auction 2026
-
 ### Build your dream squad. Rule the auction.
 
 [![Next.js](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=next.js)](https://nextjs.org/)
@@ -11,9 +9,6 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 
 **[Live Demo →](https://laksh-iplauction.vercel.app/)**
-
-![IPL Auction 2026 Preview](public/preview.png)
-
 </div>
 
 ---
