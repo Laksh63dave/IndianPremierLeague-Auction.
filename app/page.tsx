@@ -1,6 +1,5 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
-// Added missing icons to the import list
 import { Zap, Trophy, ClipboardList, LayoutGrid, ChevronLeft, Users, Search, Star, ShieldCheck, Banknote, Target, Laptop, Briefcase, Boxes, MessageSquare } from "lucide-react";
 import playersData from "@/players";
 import { shuffleArray } from "@/shuffle";
@@ -37,7 +36,6 @@ const teamColors: any = {
   "Lucknow Super Giants": "#cb165e",
 };
 
-// Custom Franchise Mottos for UI depth
 const teamMottos: Record<string, string> = {
   "MI": "#Duniya Hila Denge",
   "CSK": "#Whistle Podu",
@@ -51,7 +49,6 @@ const teamMottos: Record<string, string> = {
   "LSG": "#Gazab Andaz",
 };
 
-// Dynamic multiple commentary variants per franchise
 const teamSoldAnthems: Record<string, string[]> = {
   "Mumbai Indians": [
     "joins the Paltan! #AalaRe 💙",
@@ -126,12 +123,10 @@ export default function Home() {
   const [hoveredTeamUI, setHoveredTeamUI] = useState<string | null>(null);
 
   const [showBriefing, setShowBriefing] = useState(false);
-  // FIXED: Added missing state variable
   const [isCountingDown, setIsCountingDown] = useState(false);
   const [countdownNum, setCountdownNum] = useState(3);
   const [auctionStarted, setAuctionStarted] = useState(false);
   
-  // --- UPDATED: SORTING BY ROLE SLOTS ---
   const [players] = useState(() => {
     const roleOrder = ["Batsman", "Wicketkeeper", "All-rounder", "Bowler"];
     return roleOrder.flatMap(role => 
@@ -162,7 +157,8 @@ export default function Home() {
 
   const [favorites, setFavorites] = useState<string[]>([]);
 
-  // --- COMMENTARY HUB CONFIGURATION ---
+  const [mobileTab, setMobileTab] = useState<'scout' | 'auction' | 'squad'>('auction');
+
   const [commentary, setCommentary] = useState<string[]>([
     "🎙️ Welcome to the IPL 2026 Mega Auction room! The auctioneer has taken the podium. Raise your paddles, captains."
   ]);
@@ -262,7 +258,6 @@ export default function Home() {
     setTeams(initTeams);
   }, [selectedTeam]);
 
-  // FIXED: Gated timer logic by auctionStarted
   useEffect(() => {
     if (!auctionStarted || auctionEnded || showSetIntro) return;
     if (timer === 0) {
@@ -275,7 +270,6 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [timer, auctionStarted, auctionEnded, showSetIntro]);
 
-  // --- REWRITTEN AI LOGIC EMBEDDING ALL 6 IPL STRATEGIES ---
   useEffect(() => {
     if (!auctionStarted || teams.length === 0 || auctionEnded || showSetIntro) return;
     const player = players[index];
@@ -292,7 +286,6 @@ export default function Home() {
 
     if (ai.purse < increment) return;
 
-    // 3. Price Elasticity Based on Base Price
     let maxLimit = player.base * 2; 
     if (player.rating >= 95) {
       maxLimit = player.base >= 10 ? 24 + Math.random() * 5 : 14 + Math.random() * 3; 
@@ -314,7 +307,6 @@ export default function Home() {
     const totalSquadCount = ai.squad.length;
     const neededPlayers = 15 - totalSquadCount;
 
-    // 1. Purse-to-Slot Panic Logic (Future Budgeting)
     if (neededPlayers > 0) {
       const averageBudgetPerSlot = ai.purse / neededPlayers;
       if (averageBudgetPerSlot < 3.5 && player.rating >= 90) {
@@ -325,7 +317,6 @@ export default function Home() {
       maxLimit = Math.min(maxLimit, 9.5);
     }
 
-    // 2. Position Quota & Diminishing Utility
     const worldClassInRole = ai.squad.filter((p: any) => p.role === player.role && p.rating >= 94).length;
     if (worldClassInRole >= 2 && player.rating >= 94) {
       maxLimit *= 0.5;
@@ -342,14 +333,12 @@ export default function Home() {
       maxLimit += 1.5;
     }
     
-    // 4. The "Set Inflation" Fatigue
     const highSpentPlayersInRoom = teams.flatMap(t => t.squad).filter((p: any) => p.price >= 18).length;
     if (highSpentPlayersInRoom >= 3 && index < players.length * 0.4) {
       maxLimit *= 0.75;
       chance -= 0.15;
     }
 
-    // 5. Squad Deficit Panic Mode (Emergency Bidding)
     const totalAuctionProgress = index / players.length;
     let isPanicMode = false;
     if (totalAuctionProgress >= 0.65) {
@@ -366,7 +355,6 @@ export default function Home() {
       }
     }
 
-    // 6. The "Rival Purse" Bullying (Aukaat Over-ride)
     const sortedPurses = [...teams].sort((a, b) => b.purse - a.purse);
     const top3Teams = sortedPurses.slice(0, 3).map(t => t.name);
     const isAmirAI = top3Teams.includes(ai.name);
@@ -386,7 +374,6 @@ export default function Home() {
       if (willBid && ai.purse >= increment) {
         const nextBidValue = +(bid + increment).toFixed(2);
 
-        // --- DYNAMIC AI LIVE COMMENTARY STRATEGY ENGINE ---
         let selectedPool = commentaryTemplates.standard;
         const isPanic = timer <= 3;
         const isEscalating = nextBidValue >= player.base * 2.5;
@@ -408,7 +395,6 @@ export default function Home() {
           bid: nextBidValue,
           timer: timer
         }));
-        // --------------------------------------------------
 
         setBid(nextBidValue);
         setCurrentBidder(ai.name);
@@ -441,13 +427,11 @@ export default function Home() {
 
     const nextBidValue = +(bid + increment).toFixed(2);
 
-    // --- USER COMMENTARY INJECTION ENGINE ---
     let userTemplate = "{bidder} steps up to the challenge with a bid of ₹{bid} Cr!";
     if (timer <= 3) userTemplate = "🚨 LAST SECOND PADDLE! {bidder} strikes back at ₹{bid} Cr!";
-    else if (nextBidValue >= currentPlayer.base * 2.5) userTemplate = "The home captain {bidder} isn't backing down! Bid raised to ₹{bid} Cr!";
+    else if (nextBidValue >= currentPlayer.base * 2.5) userTemplate = "The {bidder} isn't backing down! Bid raised to ₹{bid} Cr!";
     
     logCommentary(parseTemplate(userTemplate, { bidder: user.name, bid: nextBidValue }));
-    // ----------------------------------------
 
     setBid(nextBidValue);
     setCurrentBidder(user.name);
@@ -462,7 +446,6 @@ export default function Home() {
     if (hasBid && currentBidder) {
       setSoldPlayer({ ...current, price: bid });
 
-      // --- LOCK CUSTOM SLOGAN SOLD COMMENTARY ---
       const anthemsPool = teamSoldAnthems[currentBidder] || [`joins ${currentBidder}!`];
       const randomAnthem = anthemsPool[Math.floor(Math.random() * anthemsPool.length)];
       
@@ -472,7 +455,6 @@ export default function Home() {
         anthem: randomAnthem, 
         bid: bid 
       }));
-      // -------------------------------------------
 
       setTeams((prev) =>
         prev.map((t) => {
@@ -486,7 +468,6 @@ export default function Home() {
       setSoldPlayer({ ...current, price: "UNSOLD" });
       setUnsoldPlayers((prev) => [...prev, current]);
 
-      // --- LOCK UNSOLD COMMENTARY ---
       const pool = commentaryTemplates.unsold;
       logCommentary(parseTemplate(pool[Math.floor(Math.random() * pool.length)], { player: current.name, base: current.base }));
     }
@@ -561,25 +542,22 @@ export default function Home() {
 
   const isFavoriteActive = player && favorites.includes(player.name);
 
-  // Dynamic context wire ups for theme shifts
   const selectedTeamData = teamsUI.find((t) => t.code === selectedTeamUI);
-  const activeColor = selectedTeamData ? selectedTeamData.color : '#ea580c'; // Fallback to orange-500
+  const activeColor = selectedTeamData ? selectedTeamData.color : '#ea580c';
 
-  // --- REPLACED & UPGRADED: SCREEN 1 TEAM SELECT ---
+  // ─── SCREEN 1: TEAM SELECT ───────────────────────────────────────────────────
   if (!selectedTeam) {
     return (
-      <div className="min-h-screen bg-[#0c0c0e] text-white flex items-center justify-center p-5 relative overflow-hidden" style={fontStyle}>
+      <div className="min-h-screen bg-[#0c0c0e] text-white flex items-center justify-center p-4 sm:p-5 relative overflow-hidden" style={fontStyle}>
         
-        {/* Dynamic Theme Glow Engine */}
         <div 
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] rounded-full blur-[140px] pointer-events-none opacity-20 transition-all duration-700" 
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] sm:w-[550px] sm:h-[550px] rounded-full blur-[140px] pointer-events-none opacity-20 transition-all duration-700" 
           style={{ backgroundColor: hoveredTeamUI ? teamColors[teamsUI.find(t=>t.code===hoveredTeamUI)?.name || ''] : activeColor }}
         />
 
         <div className="relative z-10 w-full max-w-xl">
  
-          {/* Header */}
-          <div className="mb-10 text-left">
+          <div className="mb-8 sm:mb-10 text-left">
             <p 
               className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.08em] mb-3 transition-colors duration-500"
               style={{ color: activeColor }}
@@ -587,14 +565,13 @@ export default function Home() {
               <span className="inline-block w-5 h-px rounded transition-colors duration-500" style={{ backgroundColor: activeColor }} />
               IPL Auction 2026
             </p>
-            <h1 className="text-[38px] font-semibold text-[#f5f5f7] leading-[1.05] tracking-[-0.04em] mb-2">
+            <h1 className="text-[28px] sm:text-[38px] font-semibold text-[#f5f5f7] leading-[1.05] tracking-[-0.04em] mb-2">
               Pick your franchise.
             </h1>
-            <p className="text-[15px] text-[#86868b] font-normal">Build your dream squad. Rule the auction.</p>
+            <p className="text-[14px] sm:text-[15px] text-[#86868b] font-normal">Build your dream squad. Rule the auction.</p>
           </div>
  
-          {/* Name input with Signature Overlay Indicator */}
-          <div className="mb-8 text-left relative">
+          <div className="mb-6 sm:mb-8 text-left relative">
             <div className="flex justify-between items-center mb-2">
               <label className="block text-[12px] font-medium text-[#86868b] uppercase tracking-[0.04em]">
                 Your name
@@ -614,12 +591,13 @@ export default function Home() {
             />
           </div>
  
-          {/* Team grid with Logo Hover Triggers */}
-          <div className="mb-6 text-left">
-            <label className="block text-[12px] font-medium text-[#86868b] uppercase tracking-[0.04em] mb-4">
-              Choose your team
-            </label>
-            <div className="grid grid-cols-5 gap-3">
+          <div className="mb-5 sm:mb-6 text-left">
+            <div className="flex justify-between items-center mb-3">
+              <label className="block text-[12px] font-medium text-[#86868b] uppercase tracking-[0.04em]">
+                Choose your team
+              </label>
+            </div>
+            <div className="grid grid-cols-5 gap-1.5 sm:gap-3 w-full">
               {teamsUI.map((team) => {
                 const active = selectedTeamUI === team.code;
                 const isHovered = hoveredTeamUI === team.code;
@@ -629,7 +607,7 @@ export default function Home() {
                     onClick={() => setSelectedTeamUI(team.code)}
                     onMouseEnter={() => setHoveredTeamUI(team.code)}
                     onMouseLeave={() => setHoveredTeamUI(null)}
-                    className={`relative flex flex-col items-center gap-2 py-4 rounded-2xl transition-all duration-300 overflow-hidden ${
+                    className={`relative flex flex-col items-center justify-center gap-1.5 px-1 py-2.5 sm:py-4 rounded-xl sm:rounded-2xl transition-all duration-300 overflow-hidden w-full ${
                       active
                         ? "border"
                         : "border border-white/[0.08] hover:border-white/[0.14]"
@@ -637,35 +615,33 @@ export default function Home() {
                     style={{
                       borderColor: active ? activeColor : "",
                       background: active ? `${activeColor}11` : "rgba(255,255,255,0.03)",
-                      backdropFilter: "blur(05px)",
+                      backdropFilter: "blur(5px)",
                       transform: active ? "translateY(-4px)" : isHovered ? "translateY(-2px)" : undefined,
                     }}
                   >
-                    {/* Translucent Logo Watermark Hover Effect */}
                     <div 
-                      className={`absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 transition-opacity duration-300 ${isHovered || active ? "opacity-[0.08]" : ""}`}
+                      className={`absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 transition-opacity duration-300 ${isHovered || active ? "opacity-[0.04]" : ""}`}
                     >
-                      <img src={teamLogos[team.name]} className="w-16 h-16 object-contain scale-125" alt="watermark" />
+                      <img src={teamLogos[team.name]} className="w-12 h-12 sm:w-16 sm:h-16 object-contain" alt="watermark" />
                     </div>
 
-                    {/* Dynamic top line when selected */}
                     {active && (
-                      <span className="absolute top-0 left-1/4 right-1/4 h-px rounded-full"
+                      <span className="absolute top-0 left-0 right-0 h-px rounded-full"
                         style={{ background: `linear-gradient(90deg,transparent, ${activeColor} ,transparent)` }} />
                     )}
                     <div
-                      className="w-11 h-11 rounded-full flex items-center justify-center text-[10px] font-semibold transition-all duration-300 border border-white/5 shadow-md"
+                      className="w-8 h-8 sm:w-11 sm:h-11 rounded-full flex items-center justify-center text-[9px] sm:text-[10px] font-semibold transition-all duration-300 border border-white/5 shadow-md shrink-0"
                       style={{ 
                         background: team.bg, 
                         color: '#fff', 
-                        transform: active ? "scale(1.1)" : undefined,
-                        boxShadow: active ? `0 0 15px ${activeColor}66` : ""
+                        transform: active ? "scale(1.05)" : undefined,
+                        boxShadow: active ? `0 0 12px ${activeColor}55` : ""
                       }}
                     >
                       {team.code}
                     </div>
                     <span 
-                      className={`text-[10px] font-medium tracking-[0.02em] transition-colors duration-300 ${active ? "font-bold" : "text-[#86868b]"}`}
+                      className={`text-[9px] sm:text-[10px] font-medium tracking-[0.02em] transition-colors duration-300 text-center truncate w-full px-0.5 ${active ? "font-bold" : "text-[#86868b]"}`}
                       style={{ color: active ? activeColor : "" }}
                     >
                       {team.code}
@@ -676,47 +652,44 @@ export default function Home() {
             </div>
           </div>
  
-          {/* Selected team banner with Franchise Mottos */}
           <div 
-            className="bg-white/[0.03] border border-white/[0.08] backdrop-blur-[20px] rounded-2xl flex items-center justify-between px-5 py-4 mb-6 transition-all duration-500 text-left"
+            className="bg-white/[0.03] border border-white/[0.08] backdrop-blur-[20px] rounded-2xl flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 mb-5 sm:mb-6 transition-all duration-500 text-left"
             style={{ borderColor: selectedTeamData ? `${activeColor}33` : "" }}
           >
             {selectedTeamData ? (
               <>
-                <div className="flex items-center gap-4 animate-fadeIn">
+                <div className="flex items-center gap-3 sm:gap-4 animate-fadeIn min-w-0 flex-1 pr-2">
                   <div 
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-[11px] font-semibold text-white shadow-md border border-white/5 transition-transform duration-500"
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-[10px] sm:text-[11px] font-semibold text-white shadow-md border border-white/5 transition-transform duration-500 shrink-0"
                     style={{ background: selectedTeamData.bg, boxShadow: `0 0 15px ${activeColor}44` }}
                   >
                     {selectedTeamData.code}
                   </div>
-                  <div>
-                    <p className="text-[14px] font-medium text-[#f5f5f7]">{selectedTeamData.name}</p>
-                    {/* Dynamic Franchise Historical Motto Insertion */}
-                    <p className="text-[11px] text-[#86868b] mt-0.5 font-medium transition-colors" style={{ color: `${activeColor}cc` }}>
+                  <div className="min-w-0">
+                    <p className="text-[13px] sm:text-[14px] font-medium text-[#f5f5f7] truncate">{selectedTeamData.name}</p>
+                    <p className="text-[10px] sm:text-[11px] text-[#86868b] mt-0.5 font-medium transition-colors truncate" style={{ color: `${activeColor}cc` }}>
                       {teamMottos[selectedTeamData.code]}
                     </p>
                   </div>
                 </div>
                 <div 
-                  className="text-right border rounded-xl px-4 py-2 transition-all duration-500"
+                  className="text-right border rounded-xl px-3 sm:px-4 py-2 transition-all duration-500 shrink-0"
                   style={{ backgroundColor: `${activeColor}08`, borderColor: `${activeColor}22` }}
                 >
                   <p className="text-[9px] font-medium uppercase tracking-[0.06em] text-gray-500">Starting purse</p>
-                  <p className="text-[18px] font-semibold leading-tight transition-colors duration-500" style={{ color: activeColor }}>₹120 Cr</p>
+                  <p className="text-[16px] sm:text-[18px] font-semibold leading-tight transition-colors duration-500" style={{ color: activeColor }}>₹120 Cr</p>
                 </div>
               </>
             ) : (
-              <p className="text-[13px] text-[#3d3d40] italic">No team selected yet</p>
+              <p className="text-[13px] text-[#3d3d40] italic w-full py-1">No team selected yet</p>
             )}
           </div>
  
-          {/* CTAs with Kinetic State Transitions */}
           <div className="flex gap-3">
             <button
               disabled={!isFormValid}
               onClick={startBriefingFlow}
-              className={`flex-1 py-4 rounded-2xl text-[15px] font-medium flex items-center justify-center gap-2 transition-all duration-500 ${
+              className={`flex-1 py-4 rounded-2xl text-[14px] sm:text-[15px] font-medium flex items-center justify-center gap-2 transition-all duration-500 ${
                 isFormValid
                   ? "text-white hover:brightness-110 active:scale-[0.98] shadow-lg shadow-black/40"
                   : "bg-white/[0.04] text-white/20 cursor-not-allowed border border-white/[0.06]"
@@ -728,15 +701,14 @@ export default function Home() {
             </button>
             <button
               onClick={() => setShowMultiplayerAlert(true)}
-              className="bg-white/[0.03] border border-white/[0.08] backdrop-blur-[20px] rounded-2xl px-5 py-4 text-[14px] text-[#86868b] hover:text-[#adadb0] flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              className="bg-white/[0.03] border border-white/[0.08] backdrop-blur-[20px] rounded-2xl px-4 sm:px-5 py-4 text-[13px] sm:text-[14px] text-[#86868b] hover:text-[#adadb0] flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               <Users className="w-4 h-4" />
-              Multiplayer
+              <span className="hidden sm:inline">Multiplayer</span>
             </button>
           </div>
         </div>
  
-        {/* Multiplayer modal */}
         {showMultiplayerAlert && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm px-4 animate-fadeIn">
             <div className="bg-[#111] border border-white/10 p-8 rounded-3xl max-w-sm w-full text-center shadow-2xl animate-scaleIn">
@@ -760,155 +732,161 @@ export default function Home() {
     );
   }
 
+  // ─── SCREEN 2: BRIEFING ───────────────────────────────────────────────────────
   if (showBriefing) {
     return (
-      <div className="min-h-screen bg-[#050505] text-white p-6 md:p-12 overflow-y-auto selection:bg-amber-500/30" style={fontStyle}>
-        <div className="max-w-6xl mx-auto">
+      <div className="min-h-screen bg-[#08080a] text-white p-4 sm:p-6 md:p-12 overflow-y-auto selection:bg-amber-500/20 flex flex-col justify-between" style={fontStyle}>
+        <div className="max-w-5xl mx-auto w-full">
           
-          {/* Header Area - Clean & Spaced */}
-          <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-16 animate-fadeIn">
-            <div className="flex items-center gap-6">
-              <div className="relative group">
-                <div className="absolute -inset-1 bg-gradient-to-b from-pink-500 to-blue-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
-                <div className="relative w-24 h-28 rounded-2xl bg-black border border-white/10 flex items-center justify-center p-4">
+          {/* Header Row */}
+          <div className="flex flex-row items-center justify-between gap-4 bg-white/[0.02] border border-white/5 rounded-2xl p-4 sm:p-6 mb-6 sm:mb-12 animate-fadeIn backdrop-blur-md">
+            <div className="flex items-center gap-3.5 text-left min-w-0 flex-1">
+              <div className="relative shrink-0">
+                <div className="absolute -inset-1 bg-gradient-to-tr rounded-xl blur opacity-20"></div>
+                <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-black/40 border border-white/10 flex items-center justify-center p-2">
                   <img src={teamLogos[selectedTeam]} className="w-full h-full object-contain" alt="logo" />
                 </div>
               </div>
-              <div className="text-left">
-                <h1 className="text-5xl font-black tracking-tighter">{playerName}</h1>
-                <p className="text-gray-500 font-bold uppercase tracking-widest text-xs mt-1">owner. • {selectedTeam}</p>
+              <div className="min-w-0">
+                <h1 className="text-xl sm:text-3xl font-black tracking-tight truncate text-[#f5f5f7]">{playerName}</h1>
+                <p className="text-gray-500 font-semibold uppercase tracking-widest text-[9px] sm:text-[10px] mt-0.5 truncate">{selectedTeam}</p>
               </div>
             </div>
-            <div className="hidden md:block text-right">
-              <div className="text-3xl font-black tabular-nums text-white/10 tracking-tighter">EST. 2008</div>
+            <div className="text-right shrink-0">
+              <div className="text-[9px] sm:text-xs font-bold uppercase tracking-[0.15em] sm:tracking-[0.2em] text-white/20">Franchise Suite</div>
+              <div className="text-sm sm:text-lg font-black tracking-tighter text-white/40 mt-0.5">EST. 2008</div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-            {/* Card 1 */}
-            <div className="bg-white/[0.03] border border-white/5 p-8 rounded-[32px] hover:bg-white/[0.05] transition-all duration-500 group">
-              <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Briefcase className="w-6 h-6 text-amber-500" />
+          {/* Feature Layout Grid - Stacks compactly into small vertical items on mobile */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-8">
+            <div className="bg-white/[0.015] border border-white/5 p-4 sm:p-6 rounded-xl sm:rounded-[24px] hover:bg-white/[0.03] transition-all duration-300 text-left flex flex-row sm:flex-col items-start gap-4 sm:gap-0 sm:justify-between">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-amber-500/5 border border-amber-500/10 rounded-lg sm:rounded-xl flex items-center justify-center sm:mb-5 shrink-0">
+                <Briefcase className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />
               </div>
-              <h3 className="text-sm font-black tracking-widest uppercase mb-4">Advanced Scouting Features.</h3>
-              <p className="text-gray-400 text-xs leading-relaxed font-medium">
-                Use the Search Sidebar to find your "Target Players." Mark them with a Star to trigger a visual alert when they hit the auction hammer.
-              </p>
+              <div className="min-w-0 flex-1 sm:mt-1">
+                <h3 className="text-[11px] font-black tracking-widest uppercase text-[#e4e4e7] mb-1 sm:mb-2">Advanced Scouting</h3>
+                <p className="text-gray-400 text-xs leading-relaxed font-medium">
+                  Use the Search Sidebar to find your "Target Players." Mark them with a Star to trigger a visual alert when they hit the auction hammer.
+                </p>
+              </div>
             </div>
 
-            {/* Card 2 */}
-            <div className="bg-white/[0.03] border border-white/5 p-8 rounded-[32px] hover:bg-white/[0.05] transition-all duration-500 group">
-              <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Banknote className="w-6 h-6 text-amber-500" />
+            <div className="bg-white/[0.015] border border-white/5 p-4 sm:p-6 rounded-xl sm:rounded-[24px] hover:bg-white/[0.03] transition-all duration-300 text-left flex flex-row sm:flex-col items-start gap-4 sm:gap-0 sm:justify-between">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-amber-500/5 border border-amber-500/10 rounded-lg sm:rounded-xl flex items-center justify-center sm:mb-5 shrink-0">
+                <Banknote className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />
               </div>
-              <h3 className="text-sm font-black tracking-widest uppercase mb-4">The Vault.</h3>
-              <p className="text-gray-400 text-xs leading-relaxed font-medium">
-                ₹120 Crore in your treasury. Use it wisely; every crore counts. Dominate or save to hunt the legends.
-              </p>
+              <div className="min-w-0 flex-1 sm:mt-1">
+                <h3 className="text-[11px] font-black tracking-widest uppercase text-[#e4e4e7] mb-1 sm:mb-2">The Vault</h3>
+                <p className="text-gray-400 text-xs leading-relaxed font-medium">
+                  ₹120 Crore in your treasury. Use it wisely; every crore counts. Dominate or save to hunt the legends.
+                </p>
+              </div>
             </div>
 
-            {/* Card 3 */}
-            <div className="bg-white/[0.03] border border-white/5 p-8 rounded-[32px] hover:bg-white/[0.05] transition-all duration-500 group">
-              <div className="w-12 h-12 bg-red-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Target className="w-6 h-6 text-red-500" />
+            <div className="bg-white/[0.015] border border-white/5 p-4 sm:p-6 rounded-xl sm:rounded-[24px] hover:bg-white/[0.03] transition-all duration-300 text-left flex flex-row sm:flex-col items-start gap-4 sm:gap-0 sm:justify-between">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-red-500/5 border border-red-500/10 rounded-lg sm:rounded-xl flex items-center justify-center sm:mb-5 shrink-0">
+                <Target className="w-4 h-4 sm:w-5 sm:h-5 text-red-400" />
               </div>
-              <h3 className="text-sm font-black tracking-widest uppercase mb-4">Outsmart the AI.</h3>
-              <p className="text-gray-400 text-xs leading-relaxed font-medium">
-                You aren't alone. 9 intelligent AI bots are programmed to steal your players. Beware of the <span className="text-red-400">Last-Second Snatch</span> in the final 2 seconds.
-              </p>
+              <div className="min-w-0 flex-1 sm:mt-1">
+                <h3 className="text-[11px] font-black tracking-widest uppercase text-[#e4e4e7] mb-1 sm:mb-2">Outsmart the AI</h3>
+                <p className="text-gray-400 text-xs leading-relaxed font-medium">
+                  You aren't alone. 9 intelligent AI bots are programmed to steal your players. Beware of the <span className="text-red-400/90 font-semibold">Last-Second Snatch</span> in the final 2 seconds.
+                </p>
+              </div>
             </div>
 
-            {/* Card 4 */}
-            <div className="bg-white/[0.03] border border-white/5 p-8 rounded-[32px] hover:bg-white/[0.05] transition-all duration-500 group">
-              <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Laptop className="w-6 h-6 text-blue-500" />
+            <div className="bg-white/[0.015] border border-white/5 p-4 sm:p-6 rounded-xl sm:rounded-[24px] hover:bg-white/[0.03] transition-all duration-300 text-left flex flex-row sm:flex-col items-start gap-4 sm:gap-0 sm:justify-between">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-500/5 border border-blue-500/10 rounded-lg sm:rounded-xl flex items-center justify-center sm:mb-5 shrink-0">
+                <Laptop className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
               </div>
-              <h3 className="text-sm font-black tracking-widest uppercase mb-4">Dev note.</h3>
-              <p className="text-gray-400 text-xs leading-relaxed font-medium">
-                Built by a fan, for the fans. If you spot a bug or have a "killer feature" idea, your feedback is the fuel that makes this game better.
-              </p>
+              <div className="min-w-0 flex-1 sm:mt-1">
+                <h3 className="text-[11px] font-black tracking-widest uppercase text-[#e4e4e7] mb-1 sm:mb-2">Dev Note</h3>
+                <p className="text-gray-400 text-xs leading-relaxed font-medium">
+                  Built by a fan, for the fans. If you spot a bug or have a "killer feature" idea, your feedback is the fuel that makes this game better.
+                </p>
+              </div>
             </div>
           </div>
 
-          <div className="flex flex-col lg:flex-row gap-4 mb-16">
-            <div className="flex-1 bg-gradient-to-r from-amber-500/10 to-transparent border border-amber-500/20 p-8 rounded-[32px] flex items-center justify-between">
-              <div className="flex items-center gap-6">
-                <Boxes className="w-10 h-10 text-amber-500/50" />
-                <div className="text-left">
-                  <h3 className="text-xs font-black tracking-[0.3em] uppercase text-amber-500 mb-2">Championship Blueprint</h3>
-                  <div className="flex flex-wrap gap-x-8 gap-y-2">
-                    <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div><span className="text-xs font-bold text-gray-300">Min 15 Players</span></div>
-                    <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div><span className="text-xs font-bold text-gray-300">5 Bat | 2 Wk | 4 All | 4 Bowl</span></div>
-                    <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-red-500"></div><span className="text-xs font-bold text-gray-300">Max 4 Overseas</span></div>
+          {/* Blueprint Rules Strip */}
+          <div className="flex flex-col md:flex-row gap-2.5 mb-8 sm:mb-12">
+            <div className="flex-1 bg-white/[0.01] border border-white/5 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left">
+              <div className="flex items-center gap-3 w-full">
+                <Boxes className="w-4 h-4 text-gray-500 shrink-0" />
+                <div className="w-full">
+                  <h4 className="text-[10px] font-black tracking-widest uppercase text-amber-500">Championship Blueprint</h4>
+                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 mt-0.5 text-[11px] sm:text-xs font-semibold text-gray-300 w-full">
+                    <span className="flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-amber-500"></span>Min 15 Players</span>
+                    <span className="text-white/10">•</span>
+                    <span className="flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-amber-500"></span>5 Bat, 2 Wk, 4 All, 4 Bowl</span>
+                    <span className="text-white/10 hidden sm:inline">•</span>
+                    <span className="flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-red-500"></span>Max 4 Overseas</span>
                   </div>
                 </div>
               </div>
             </div>
             
-            <div className="lg:w-1/3 bg-white/[0.03] border border-white/5 p-8 rounded-[32px] flex items-center gap-6">
-               <Zap className="w-8 h-8 text-amber-500/40" />
-               <div className="text-left">
-                 <h3 className="text-[10px] font-black tracking-widest uppercase text-gray-500">Bidding Sequence</h3>
-                 <p className="text-[11px] font-bold text-gray-400 uppercase mt-1">Bat → Wk → All → Bowl</p>
+            <div className="md:w-64 bg-white/[0.01] border border-white/5 p-4 rounded-xl flex items-center gap-3 text-left">
+               <Zap className="w-4 h-4 text-amber-500/60 shrink-0" />
+               <div>
+                 <h4 className="text-[10px] font-black tracking-widest uppercase text-gray-500">Bidding Sequence</h4>
+                 <p className="text-[11px] sm:text-xs font-bold text-gray-300 mt-0.5 uppercase tracking-wider">Bat → Wk → All → Bowl</p>
                </div>
             </div>
           </div>
 
-          <div className="flex justify-center">
+          {/* Action Trigger Block */}
+          <div className="flex justify-center mb-2">
             <button 
               onClick={commenceAuction} 
-              className="group relative inline-flex items-center justify-center px-12 py-6 font-black tracking-[0.2em] text-black bg-amber-500 rounded-2xl overflow-hidden transition-all duration-300 hover:scale-105 active:scale-95 shadow-[0_20px_50px_rgba(245,158,11,0.2)]"
+              className="group relative inline-flex items-center justify-center w-full sm:w-auto px-10 py-4 font-black tracking-[0.15em] text-black bg-amber-500 rounded-xl overflow-hidden transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] shadow-[0_20px_40px_rgba(245,158,11,0.1)]"
             >
-              <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-orange-400 to-amber-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-              <span className="relative uppercase text-lg">start auction.</span>
-              <ChevronLeft className="relative w-5 h-5 ml-2 rotate-180 group-hover:translate-x-1 transition-transform" />
+              <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-amber-400 to-orange-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <span className="relative uppercase text-xs font-black">start auction.</span>
+              <ChevronLeft className="relative w-4 h-4 ml-1.5 rotate-180 group-hover:translate-x-0.5 transition-transform" />
             </button>
           </div>
 
         </div>
 
-        <footer className="max-w-[1400px] mx-auto mt-12 mb-8 px-4" style={fontStyle}>
-          <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex flex-col items-center md:items-start">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                <span className="text-white font-bold text-sm uppercase tracking-widest">contact us on.</span>
-              </div>
+        {/* Muted Footer */}
+        <footer className="max-w-5xl mx-auto w-full mt-6 sm:mt-auto" style={fontStyle}>
+          <div className="pt-4 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-3 text-gray-500 text-center sm:text-left">
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-500/60"></div>
+              <span className="font-bold text-[9px] uppercase tracking-widest text-gray-400">Secure Room Access</span>
             </div>
-            <div className="flex items-center gap-6">
-              <a href="https://github.com/Laksh63dave" target="_blank" className="text-gray-500 hover:text-white transition-all text-xs font-bold uppercase tracking-widest">Github</a>
-              <a href="https://www.instagram.com/lakshhh_63/" target="_blank" className="text-gray-500 hover:text-pink-500 transition-all text-xs font-bold uppercase tracking-widest">Instagram</a>
-              <a href="https://www.linkedin.com/in/lakshdave18/" target="_blank" className="text-gray-500 hover:text-blue-500 transition-all text-xs font-bold uppercase tracking-widest">LinkedIn</a>
+            <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-widest">
+              <a href="https://github.com/Laksh63dave" target="_blank" className="hover:text-white transition-colors">Github</a>
+              <a href="https://www.instagram.com/lakshhh_63/" target="_blank" className="hover:text-pink-500 transition-colors">Instagram</a>
+              <a href="https://www.linkedin.com/in/lakshdave18/" target="_blank" className="hover:text-blue-500 transition-colors">LinkedIn</a>
             </div>
-            <div className="text-[10px] text-gray-600 font-medium tracking-tight">© 2026 Laksh Dave. All rights reserved.</div>
+            <div className="text-[9px] font-medium tracking-tight text-zinc-600">© 2026 Laksh Dave. All rights reserved.</div>
           </div>
         </footer>
       </div>
     );
   }
 
-  // --- SCREEN 3: COUNTDOWN ---
+  // ─── SCREEN 3: COUNTDOWN ─────────────────────────────────────────────────────
   if (isCountingDown) {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center overflow-hidden" style={fontStyle}>
-        {/* Background Shockwave Effect */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-500/10 via-transparent to-transparent animate-pulse"></div>
         
         <div className="relative">
-          {/* Shadow Number */}
           <h1 className="text-[20rem] md:text-[30rem] font-black text-white/[0.03] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 italic scale-150">
             {countdownNum}
           </h1>
-          
-          {/* Main Number with Glitchy Shake */}
-          <h1 className="relative text-[12rem] md:text-[20rem] font-black text-white tracking-tighter animate-bounceIn drop-shadow-[0_0_50px_rgba(255,255,255,0.2)]">
+          <h1 className="relative text-[10rem] sm:text-[12rem] md:text-[20rem] font-black text-white tracking-tighter animate-bounceIn drop-shadow-[0_0_50px_rgba(255,255,255,0.2)]">
             {countdownNum}
           </h1>
         </div>
 
         <div className="mt-4 flex flex-col items-center gap-2">
           <div className="h-[2px] w-12 bg-amber-500 animate-width"></div>
-          <p className="text-amber-500 font-black tracking-[0.8em] uppercase text-[10px] animate-pulse">
+          <p className="text-amber-500 font-black tracking-[0.4em] sm:tracking-[0.8em] uppercase text-[10px] animate-pulse text-center px-4">
             ladies and gentlemen, you're not ready for this!
           </p>
         </div>
@@ -916,44 +894,88 @@ export default function Home() {
     );
   }
 
+  // ─── SCREEN 4: MAIN AUCTION ──────────────────────────────────────────────────
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-black via-zinc-900 to-black text-white p-4" style={fontStyle}>
+      <div className="min-h-screen bg-gradient-to-br from-black via-zinc-900 to-black text-white p-3 sm:p-4 pb-20 lg:pb-4" style={fontStyle}>
         
-        <div className="max-w-[1400px] mx-auto mb-4 flex items-center justify-between">
-          <div className="flex items-center bg-white/5 backdrop-blur-md rounded-xl border border-white/10 p-1">
-            <div className="px-4 py-1 border-r border-white/10">
-              <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest block">Purse</span>
-              <span className="text-green-400 font-bold text-lg leading-tight">₹{userTeam?.purse}Cr</span>
-            </div>
-            <div className={`px-4 py-1 transition-all ${timer <= 3 ? "bg-red-500/20" : ""}`}>
-              <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest block">Timer</span>
-              <span className={`font-bold text-lg leading-tight tabular-nums ${timer <= 3 ? "text-red-400 animate-pulse" : "text-orange-400"}`}>{timer}s
+        {/* ── Header ── */}
+        <div className="max-w-[1400px] mx-auto mb-3 sm:mb-4">
+          <div className="hidden lg:flex items-center justify-between">
+            <div className="flex items-center bg-white/5 backdrop-blur-md rounded-xl border border-white/10 p-1">
+              <div className="px-4 py-1 border-r border-white/10">
+                <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest block">Purse</span>
+                <span className="text-green-400 font-bold text-lg leading-tight">₹{userTeam?.purse}Cr</span>
+              </div>
+              <div className={`px-4 py-1 transition-all ${timer <= 3 ? "bg-red-500/20" : ""}`}>
+                <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest block">Timer</span>
+                <span className={`font-bold text-lg leading-tight tabular-nums ${timer <= 3 ? "text-red-400 animate-pulse" : "text-orange-400"}`}>{timer}s</span>
                 <div className="w-full h-1 mt-2 bg-white/10 rounded-full overflow-hidden">
-                <div
-                className={`h-full ${timer <= 3 ? "bg-red-500" : "bg-orange-400"} transition-all`}
-                style={{ width: `${(timer / 10) * 100}%` }}
-                />
+                  <div className={`h-full ${timer <= 3 ? "bg-red-500" : "bg-orange-400"} transition-all`} style={{ width: `${(timer / 10) * 100}%` }} />
                 </div>
-              </span>
+              </div>
+              <button onClick={() => setShowReq(true)} className="px-4 py-2 hover:bg-white/5 transition-all border-l border-white/10 text-xs font-bold uppercase flex items-center gap-2">
+                <ClipboardList className="w-4 h-4" /> Requirements
+              </button>
+              <button onClick={() => { setShowTeamsModal(true); setViewingTeam(null); }} className="px-4 py-2 hover:bg-white/5 transition-all border-l border-white/10 text-xs font-bold uppercase flex items-center gap-2">
+                <LayoutGrid className="w-4 h-4" /> Teams
+              </button>
+              <button onClick={() => setShowUnsoldModal(true)} className="px-4 py-2 hover:bg-white/5 transition-all border-l border-white/10 text-xs font-bold uppercase flex items-center gap-2">
+                <Zap className="w-4 h-4" /> Unsold
+              </button>
             </div>
-            <button onClick={() => setShowReq(true)} className="px-4 py-2 hover:bg-white/5 transition-all border-l border-white/10 text-xs font-bold uppercase flex items-center gap-2">
-              <ClipboardList className="w-4 h-4" /> Requirements
-            </button>
-            <button onClick={() => { setShowTeamsModal(true); setViewingTeam(null); }} className="px-4 py-2 hover:bg-white/5 transition-all border-l border-white/10 text-xs font-bold uppercase flex items-center gap-2">
-              <LayoutGrid className="w-4 h-4" /> Teams
-            </button>
-            <button onClick={() => setShowUnsoldModal(true)} className="px-4 py-2 hover:bg-white/5 transition-all border-l border-white/10 text-xs font-bold uppercase flex items-center gap-2">
-              <Zap className="w-4 h-4" /> Unsold
-            </button>
+            <div className="bg-amber-500/10 border border-amber-500/20 px-4 py-2 rounded-xl">
+              <span className="text-amber-500 text-[10px] font-black uppercase tracking-widest">Active Set: {player?.role}</span>
+            </div>
           </div>
-          <div className="bg-amber-500/10 border border-amber-500/20 px-4 py-2 rounded-xl">
-             <span className="text-amber-500 text-[10px] font-black uppercase tracking-widest">Active Set: {player?.role}</span>
+
+          {/* Mobile header */}
+          <div className="flex lg:hidden items-center gap-2">
+            <div className="flex items-center bg-white/5 border border-white/10 rounded-xl p-1 flex-1 gap-1">
+              <div className="px-3 py-1 border-r border-white/10 flex-1">
+                <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest block">Purse</span>
+                <span className="text-green-400 font-bold text-sm leading-tight">₹{userTeam?.purse}Cr</span>
+              </div>
+              <div className={`px-3 py-1 flex-1 transition-all ${timer <= 3 ? "bg-red-500/20 rounded-lg" : ""}`}>
+                <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest block">Timer</span>
+                <span className={`font-bold text-sm leading-tight tabular-nums ${timer <= 3 ? "text-red-400 animate-pulse" : "text-orange-400"}`}>{timer}s</span>
+                <div className="w-full h-1 mt-1 bg-white/10 rounded-full overflow-hidden">
+                  <div className={`h-full ${timer <= 3 ? "bg-red-500" : "bg-orange-400"} transition-all`} style={{ width: `${(timer / 10) * 100}%` }} />
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-1.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <button onClick={() => setShowReq(true)} className="flex-shrink-0 bg-white/5 border border-white/10 rounded-xl p-2.5 text-gray-400 hover:text-white transition">
+                <ClipboardList className="w-4 h-4" />
+              </button>
+              <button onClick={() => { setShowTeamsModal(true); setViewingTeam(null); }} className="flex-shrink-0 bg-white/5 border border-white/10 rounded-xl p-2.5 text-gray-400 hover:text-white transition">
+                <LayoutGrid className="w-4 h-4" />
+              </button>
+              <button onClick={() => setShowUnsoldModal(true)} className="flex-shrink-0 bg-white/5 border border-white/10 rounded-xl p-2.5 text-gray-400 hover:text-white transition">
+                <Zap className="w-4 h-4" />
+              </button>
+              <div className="flex-shrink-0 bg-amber-500/10 border border-amber-500/20 px-2.5 py-2 rounded-xl flex items-center">
+                <span className="text-amber-500 text-[9px] font-black uppercase tracking-wider whitespace-nowrap">{player?.role}</span>
+              </div>
+            </div>
           </div>
         </div>
 
         <div className="max-w-[1400px] mx-auto flex gap-4">
-          <div className="w-1/5 p-4 rounded-2xl bg-white/5 border border-white/10 h-[78vh] flex flex-col overflow-hidden">
+
+          {/* Scout sidebar */}
+          <div className={`
+            w-1/5 p-4 rounded-2xl bg-white/5 border border-white/10 flex-col overflow-hidden
+            hidden lg:flex
+            ${mobileTab === 'scout' ? '!flex fixed inset-0 z-40 w-full h-full rounded-none bg-[#0c0c0e] border-0 pb-20' : ''}
+          `} style={{ height: mobileTab === 'scout' ? '100dvh' : '78vh' }}>
+            <button
+              className="lg:hidden flex items-center gap-1 text-gray-400 text-xs font-bold uppercase mb-4 self-start"
+              onClick={() => setMobileTab('auction')}
+            >
+              <ChevronLeft className="w-4 h-4" /> Back
+            </button>
+
             <div className="relative mb-4">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
               <input 
@@ -969,7 +991,7 @@ export default function Home() {
               {Object.entries(filteredPool).map(([role, list]) => (
                 list.length > 0 && (
                   <div key={role} className="flex flex-col">
-                    <h3 className="text-[10px] text-amber-500/80 font-black uppercase tracking-widest mb-2 border-l-2 border-amber-500 pl-2">
+                    <h3 className="text-[10px] text-amber-500/80 font-black uppercase tracking-widest mb-2 border-l-2 border-amber-500 p-2">
                       {role}
                     </h3>
                     <div className="space-y-1">
@@ -982,16 +1004,12 @@ export default function Home() {
                           <div key={i} className={`flex items-center justify-between group py-1.5 border-b border-white/5 ${isPlayerSold ? "opacity-50" : ""}`}>
                             <div className="flex items-center gap-1.5 max-w-[85%] truncate text-left">
                               <span className="text-[11px] text-gray-400 font-medium truncate">{p.name}</span>
-                              
-                              {/* TEXT ADDITION: (SOLD - ₹PRICE Cr) */}
                               {isPlayerSold && (
                                 <span className="text-[10px] font-bold text-red-500/80 flex-shrink-0 tracking-tight">
                                   (SOLD - ₹{soldPrice}Cr)
                                 </span>
                               )}
                             </div>
-                            
-                            {/* SHOW STAR ONLY IF PLAYER IS NOT SOLD */}
                             {!isPlayerSold ? (
                               <button onClick={() => toggleFavorite(p.name)} className="transition-transform active:scale-125">
                                 <Star className={`w-3 h-3 ${favorites.includes(p.name) ? "text-amber-400 fill-amber-400" : "text-gray-600 hover:text-gray-300"}`} />
@@ -1009,137 +1027,153 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="flex-1 flex flex-col items-center justify-center">
+          {/* Main auction area */}
+          <div className={`
+            flex-1 flex-col items-center justify-center
+            hidden lg:flex
+            ${mobileTab === 'auction' ? '!flex' : ''}
+          `}>
             {auctionEnded ? (
-                <div className="w-full max-w-lg p-10 rounded-3xl text-center bg-[#0a0a0a] border border-white/10 shadow-2xl">
-                    <Trophy className="w-12 h-12 mx-auto mb-4 text-yellow-500" />
-                    <h1 className="text-3xl font-bold mb-2 text-white">Auction Complete</h1>
-                    {!isSquadValid && <div className="bg-red-500/10 border border-red-500/30 p-3 rounded-xl mb-6 text-red-400 text-xs font-medium">⚠️ Requirements Not Met</div>}
-                    <button onClick={() => window.location.reload()} className="bg-white text-black px-10 py-3 rounded-xl font-black hover:scale-105 transition">START NEW</button>
-                </div>
+              <div className="w-full max-w-lg p-8 sm:p-10 rounded-3xl text-center bg-[#0a0a0a] border border-white/10 shadow-2xl">
+                <Trophy className="w-12 h-12 mx-auto mb-4 text-yellow-500" />
+                <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-white">Auction Complete</h1>
+                {!isSquadValid && <div className="bg-red-500/10 border border-red-500/30 p-3 rounded-xl mb-6 text-red-400 text-xs font-medium">⚠️ Requirements Not Met</div>}
+                <button onClick={() => window.location.reload()} className="bg-white text-black px-10 py-3 rounded-xl font-black hover:scale-105 transition">START NEW</button>
+              </div>
             ) : (
-                <>
-                  <div 
-                    className="w-full max-w-lg p-8 rounded-[40px] text-center bg-white/5 backdrop-blur-xl border border-white/10 transition-all duration-500 shadow-2xl"
+              <>
+                <div 
+                  className="w-full max-w-lg p-6 sm:p-8 rounded-[32px] sm:rounded-[40px] text-center bg-white/5 backdrop-blur-xl border border-white/10 transition-all duration-500 shadow-2xl"
+                  style={{ 
+                    boxShadow: isFavoriteActive 
+                      ? "0 0 50px rgba(251, 191, 36, 0.3)" 
+                      : currentBidder 
+                        ? `0 0 40px ${teamColors[currentBidder]}22` 
+                        : player?.rating > 90 
+                          ? "0 0 40px rgba(255, 215, 0, 0.15)" 
+                          : "none" 
+                  }}
+                >
+                  {isFavoriteActive && (
+                    <div className="flex justify-center mb-2 animate-pulse">
+                      <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+                    </div>
+                  )}
+
+                  <div className={`text-[9px] mb-3 uppercase font-bold tracking-[0.2em] px-3 py-1 inline-block rounded-full ${player?.role === "Batsman" ? "bg-blue-500/20 text-blue-400" : player?.role === "Bowler" ? "bg-red-500/20 text-red-400" : player?.role === "All-rounder" ? "bg-green-500/20 text-green-400" : "bg-yellow-500/20 text-yellow-400"}`}>
+                    {player?.role}
+                  </div>
+                  <h1 className="text-2xl sm:text-4xl font-bold mb-1 tracking-tighter text-white">{player?.name}</h1>
+                  
+                  <div className="flex items-center justify-center gap-2 sm:gap-4 mb-5 sm:mb-6 mt-3 flex-wrap">
+                    <div className="bg-white/5 px-3 py-1 rounded-full border border-white/5">
+                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">⭐ {player?.rating} Rating</span>
+                    </div>
+                    <div className="bg-white/5 px-3 py-1 rounded-full border border-white/5">
+                      <span className="text-[10px] text-gray-400 font-medium uppercase tracking-tight">{player?.style}</span>
+                    </div>
+                    <div className="bg-white/5 px-3 py-1 rounded-full border border-white/5">
+                      <span className="text-[10px] text-gray-300 font-bold uppercase tracking-tight">{player?.country}</span>
+                    </div>
+                  </div>
+
+                  <div className="text-4xl sm:text-6xl font-black text-green-400 mb-6 sm:mb-8 tabular-nums tracking-tighter">₹{bid} Cr</div>
+                  <div className="mb-6 sm:mb-8 min-h-[36px] flex items-center justify-center gap-3">
+                    {currentBidder && <img src={teamLogos[currentBidder]} className="w-7 h-7 object-contain drop-shadow-lg" />}
+                    <span
+                      className="text-base sm:text-lg font-bold tracking-tight flex items-center gap-2"
+                      style={{ color: currentBidder ? teamColors[currentBidder] : "#666" }}
+                    >
+                      {currentBidder ? ` is leading.` : "Awaiting Bids..."}
+                    </span>
+                  </div>
+                  
+                  <button 
+                    onClick={increaseBid} 
+                    disabled={currentBidder === userTeam?.name || sold}
+                    className={`w-full sm:w-auto px-8 sm:px-14 py-4 rounded-2xl font-black text-base sm:text-lg transition-all text-white shadow-xl 
+                      ${currentBidder === userTeam?.name ? "opacity-50 cursor-not-allowed" : "hover:scale-[1.02] active:scale-[0.98]"}`}
                     style={{ 
-                      boxShadow: isFavoriteActive 
-                        ? "0 0 50px rgba(251, 191, 36, 0.3)" 
-                        : currentBidder 
-                          ? `0 0 40px ${teamColors[currentBidder]}22` 
-                          : player?.rating > 90 
-                            ? "0 0 40px rgba(255, 215, 0, 0.15)" 
-                            : "none" 
+                      background: currentBidder ? `linear-gradient(135deg, ${teamColors[currentBidder]}, #000)` : "linear-gradient(135deg, #ff0381, #dc2626)", 
+                      boxShadow: currentBidder ? `0 15px 30px ${teamColors[currentBidder]}44` : "0 15px 30px rgba(255, 0, 128, 0.2)" 
                     }}
                   >
-                    {isFavoriteActive && (
-                      <div className="flex justify-center mb-2 animate-pulse">
-                        <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
-                      </div>
-                    )}
+                    {currentBidder === userTeam?.name ? "✅ LEADING" : `💲 BID ₹${(bid + (bid >= 20 ? 1 : bid >= 10 ? 0.5 : 0.25)).toFixed(2)} Cr`}
+                  </button>
+                </div>
 
-                    <div className={`text-[9px] mb-3 uppercase font-bold tracking-[0.2em] px-3 py-1 inline-block rounded-full ${player?.role === "Batsman" ? "bg-blue-500/20 text-blue-400" : player?.role === "Bowler" ? "bg-red-500/20 text-red-400" : player?.role === "All-rounder" ? "bg-green-500/20 text-green-400" : "bg-yellow-500/20 text-yellow-400"}`}>
-                      {player?.role}
+                {/* Commentary feed */}
+                <div className="w-full max-w-lg mt-4 sm:mt-5 bg-white/[0.02] border border-white/[0.06] rounded-2xl sm:rounded-3xl p-4 sm:p-5 backdrop-blur-xl shadow-2xl text-left relative overflow-hidden flex flex-col h-[120px] sm:h-[130px]">
+                  <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-amber-500/20 to-transparent" />
+                  
+                  <div className="flex items-center justify-between mb-2 sm:mb-3 flex-shrink-0">
+                    <div className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
+                      <span className="text-[10px] uppercase font-black tracking-[0.15em] text-amber-500/90 font-sans">
+                        🎙️ Live Broadcast Feed
+                      </span>
                     </div>
-                    <h1 className="text-4xl font-bold mb-1 tracking-tighter text-white">{player?.name}</h1>
-                    
-                    <div className="flex items-center justify-center gap-4 mb-6 mt-3">
-                      <div className="bg-white/5 px-3 py-1 rounded-full border border-white/5">
-                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">⭐ {player?.rating} Rating</span>
-                      </div>
-                      <div className="bg-white/5 px-3 py-1 rounded-full border border-white/5">
-                        <span className="text-[10px] text-gray-400 font-medium uppercase tracking-tight">{player?.style}</span>
-                      </div>
-                      <div className="bg-white/5 px-3 py-1 rounded-full border border-white/5">
-                        <span className="text-[10px] text-gray-300 font-bold uppercase tracking-tight">{player?.country}</span>
-                      </div>
-                    </div>
+                    <span className="text-[9px] uppercase font-mono text-zinc-600 tracking-wider hidden sm:block">
+                      IPL AUCTION 2026.
+                    </span>
+                  </div>
 
-                    <div className="text-6xl font-black text-green-400 mb-8 tabular-nums tracking-tighter">₹{bid} Cr</div>
-                    <div className="mb-8 min-h-[36px] flex items-center justify-center gap-3">
-                      {currentBidder && <img src={teamLogos[currentBidder]} className="w-7 h-7 object-contain drop-shadow-lg" />}
-                      <span
-                      className="text-lg font-bold tracking-tight flex items-center gap-2"
-                      style={{ color: currentBidder ? teamColors[currentBidder] : "#666" }}
+                  <div className="flex-1 overflow-y-auto space-y-2.5 font-sans pr-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    {commentary.map((line, idx) => (
+                      <div 
+                        key={idx} 
+                        className={`transition-all duration-500 flex items-start gap-2.5 rounded-xl px-2.5 py-1.5 flex-shrink-0 ${
+                          idx === 0 
+                            ? "text-[#f5f5f7] font-medium text-[12px] sm:text-[13px] bg-white/[0.03] border border-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.02)] scale-[1.01]" 
+                            : "text-zinc-500 text-[10px] sm:text-[11px] opacity-50 filter blur-[0.2px]"
+                        }`}
                       >
-                      {currentBidder ? ` is leading.` : "Awaiting Bids..."}
-                      </span>
-                    </div>
-                    
-                    <button 
-                      onClick={increaseBid} 
-                      disabled={currentBidder === userTeam?.name || sold}
-                      className={`px-14 py-4 rounded-2xl font-black text-lg transition-all text-white shadow-xl 
-                        ${currentBidder === userTeam?.name ? "opacity-50 cursor-not-allowed" : "hover:scale-[1.02] active:scale-[0.98]"}`}
-                      style={{ 
-                        background: currentBidder ? `linear-gradient(135deg, ${teamColors[currentBidder]}, #000)` : "linear-gradient(135deg, #ff0381, #dc2626)", 
-                        boxShadow: currentBidder ? `0 15px 30px ${teamColors[currentBidder]}44` : "0 15px 30px rgba(255, 0, 128, 0.2)" 
-                      }}
-                    >
-                      {currentBidder === userTeam?.name ? "✅ LEADING" : `💲 BID ₹${(bid + (bid >= 20 ? 1 : bid >= 10 ? 0.5 : 0.25)).toFixed(2)} Cr`}
-                    </button>
-                  </div>
-
-                  {/* --- PREMIUM LIVE BROADCAST COMMENTARY HUB (COMPACT FIXED HEIGHT) --- */}
-                  <div className="w-full max-w-lg mt-5 bg-white/[0.02] border border-white/[0.06] rounded-3xl p-5 backdrop-blur-xl shadow-2xl text-left relative overflow-hidden flex flex-col h-[130px]">
-                    <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-amber-500/20 to-transparent" />
-                    
-                    <div className="flex items-center justify-between mb-3 flex-shrink-0">
-                      <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
-                        <span className="text-[10px] uppercase font-black tracking-[0.15em] text-amber-500/90 font-sans">
-                          🎙️ Live Broadcast Feed
+                        <span className={`font-mono mt-0.5 select-none text-[10px] ${idx === 0 ? "text-amber-500" : "text-zinc-700"}`}>
+                          {idx === 0 ? "⚡" : "•"}
                         </span>
+                        <p className="leading-relaxed flex-1">{line}</p>
                       </div>
-                      <span className="text-[9px] uppercase font-mono text-zinc-600 tracking-wider">
-                        IPL AUCTION 2026.
-                      </span>
-                    </div>
-
-                    {/* Content wrapper handles inner overflow cleanly without shifting card sizes */}
-                    <div className="flex-1 overflow-y-auto space-y-2.5 font-sans pr-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                      {commentary.map((line, idx) => (
-                        <div 
-                          key={idx} 
-                          className={`transition-all duration-500 flex items-start gap-2.5 rounded-xl px-2.5 py-1.5 flex-shrink-0 ${
-                            idx === 0 
-                              ? "text-[#f5f5f7] font-medium text-[13px] bg-white/[0.03] border border-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.02)] scale-[1.01]" 
-                              : "text-zinc-500 text-[11px] opacity-50 filter blur-[0.2px]"
-                          }`}
-                        >
-                          <span className={`font-mono mt-0.5 select-none text-[10px] ${idx === 0 ? "text-amber-500" : "text-zinc-700"}`}>
-                            {idx === 0 ? "⚡" : "•"}
-                          </span>
-                          <p className="leading-relaxed flex-1">{line}</p>
-                        </div>
-                      ))}
-                    </div>
+                    ))}
                   </div>
-                </>
+                </div>
+              </>
             )}
           </div>
 
-          <div className="w-1/5 p-4 rounded-2xl bg-white/5 border border-white/10 h-[78vh] overflow-y-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <div className="flex items-center gap-2.5 px-3 py-3 bg-gradient-to-br from-white/[0.06] to-white/[0.02] rounded-xl border border-white/10 mb-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] hover:bg-white/[0.08] hover:scale-[1.02] transition-all duration-300">
-            <div className="relative">
-            <div className="w-11 h-11 rounded-full bg-black flex items-center justify-center border border-white/10 overflow-hidden"
-            style={{
-              boxShadow: userTeam?.name 
-              ? `0 0 18px ${teamColors[userTeam.name]}55` 
-              : "0 0 10px rgba(255,255,255,0.05)"
-            }}
+          {/* Squad sidebar */}
+          <div className={`
+            w-1/5 p-4 rounded-2xl bg-white/5 border border-white/10 overflow-y-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden
+            hidden lg:block
+            ${mobileTab === 'squad' ? '!block fixed inset-0 z-40 w-full rounded-none bg-[#0c0c0e] border-0 pb-20 overflow-y-auto' : ''}
+          `} style={{ height: mobileTab === 'squad' ? '100dvh' : '78vh' }}>
+            <button
+              className="lg:hidden flex items-center gap-1 text-gray-400 text-xs font-bold uppercase mb-4"
+              onClick={() => setMobileTab('auction')}
             >
-            {userTeam?.name && (
-              <img src={teamLogos[userTeam.name]} className="w-7 h-7 object-contain" alt="team" />
-              )}
-            </div>
-            </div>
-            <div className="flex flex-col text-left overflow-hidden leading-tight">
-              <span className="text-[13px] font-semibold text-white truncate">
-                {playerName || "Team Owner"}
-              </span>
-              <span className="text-[10px] text-gray-400 font-medium">
-                {userTeam?.name && `- ${userTeam.name}`}
-              </span>
+              <ChevronLeft className="w-4 h-4" /> Back
+            </button>
+
+            <div className="flex items-center gap-2.5 px-3 py-3 bg-gradient-to-br from-white/[0.06] to-white/[0.02] rounded-xl border border-white/10 mb-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] hover:bg-white/[0.08] hover:scale-[1.02] transition-all duration-300">
+              <div className="relative">
+                <div className="w-11 h-11 rounded-full bg-black flex items-center justify-center border border-white/10 overflow-hidden"
+                  style={{
+                    boxShadow: userTeam?.name 
+                      ? `0 0 18px ${teamColors[userTeam.name]}55` 
+                      : "0 0 10px rgba(255,255,255,0.05)"
+                  }}
+                >
+                  {userTeam?.name && (
+                    <img src={teamLogos[userTeam.name]} className="w-7 h-7 object-contain" alt="team" />
+                  )}
+                </div>
+              </div>
+              <div className="flex flex-col text-left overflow-hidden leading-tight">
+                <span className="text-[13px] font-semibold text-white truncate">
+                  {playerName || "Team Owner"}
+                </span>
+                <span className="text-[10px] text-gray-400 font-medium">
+                  {userTeam?.name && `- ${userTeam.name}`}
+                </span>
               </div>
             </div>
 
@@ -1155,17 +1189,40 @@ export default function Home() {
                     p.role === "Bowler" ? "bg-red-400" :
                     p.role === "All-rounder" ? "bg-green-400" :
                     "bg-yellow-400"
-                    }`} />
-                    <span className="truncate">{p.name}</span>
-                  </span>
+                  }`} />
+                  <span className="truncate">{p.name}</span>
+                </span>
                 <span className="text-green-400 font-bold tabular-nums">₹{p.price}Cr</span>
               </div>
             ))}
           </div>
         </div>
 
-        <footer className="max-w-[1400px] mx-auto mt-12 mb-8 px-4" style={fontStyle}>
-          <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
+        {/* Mobile bottom tab bar */}
+        <div className="fixed bottom-0 left-0 right-0 z-30 lg:hidden bg-black/95 backdrop-blur-xl border-t border-white/10">
+          <div className="flex">
+            {([
+              { id: 'scout', label: 'Scout', icon: Search },
+              { id: 'auction', label: 'Auction', icon: Zap },
+              { id: 'squad', label: 'My Squad', icon: ShieldCheck },
+            ] as const).map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => setMobileTab(id)}
+                className={`flex-1 flex flex-col items-center gap-1 py-3 text-[10px] font-bold uppercase tracking-widest transition-colors ${
+                  mobileTab === id ? 'text-amber-500' : 'text-gray-600'
+                }`}
+              >
+                <Icon className={`w-5 h-5 ${mobileTab === id ? 'text-amber-500' : 'text-gray-600'}`} />
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Desktop footer */}
+        <footer className="max-w-[1400px] mx-auto mt-10 sm:mt-12 mb-6 sm:mb-8 px-4 hidden lg:block" style={fontStyle}>
+          <div className="pt-6 sm:pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 sm:gap-6">
             <div className="flex flex-col items-center md:items-start">
               <div className="flex items-center gap-2 mb-1">
                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
@@ -1183,33 +1240,34 @@ export default function Home() {
         </footer>
       </div>
 
+      {/* Sold overlay */}
       {sold && soldPlayer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl animate-fadeIn" style={fontStyle}>
-          <div className="relative px-12 py-8 rounded-[32px] text-center bg-[#0a0a0a] border border-white/10 animate-scaleIn shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl animate-fadeIn px-4" style={fontStyle}>
+          <div className="relative px-8 sm:px-12 py-8 rounded-[32px] text-center bg-[#0a0a0a] border border-white/10 animate-scaleIn shadow-2xl w-full max-w-sm">
             <h2 className="text-[10px] font-bold text-gray-500 mb-4 uppercase tracking-[0.4em]">sold.</h2>
             {currentBidder && <img src={teamLogos[currentBidder]} className="w-12 h-12 mx-auto mb-4 object-contain" />}
-            <p className="text-3xl font-bold mb-1 tracking-tighter text-white">{soldPlayer.name}</p>
+            <p className="text-2xl sm:text-3xl font-bold mb-1 tracking-tighter text-white">{soldPlayer.name}</p>
             <p className="text-sm text-gray-400 mb-6 font-bold uppercase">{currentBidder || "Unsold"}</p>
-            <div className={`text-2xl font-black tabular-nums ${soldPlayer.price === "UNSOLD" ? "text-red-500" : "text-green-400"}`}>{soldPlayer.price === "UNSOLD" ? "❌ UNSOLD" : `₹${soldPlayer.price} Cr`}</div>
+            <div className={`text-xl sm:text-2xl font-black tabular-nums ${soldPlayer.price === "UNSOLD" ? "text-red-500" : "text-green-400"}`}>{soldPlayer.price === "UNSOLD" ? "❌ UNSOLD" : `₹${soldPlayer.price} Cr`}</div>
           </div>
         </div>
       )}
 
-      {/* --- UPDATED: SET INTRO TRANSITION OVERLAY --- */}
+      {/* Set intro overlay */}
       {showSetIntro && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-3xl animate-fadeIn" style={fontStyle}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-3xl animate-fadeIn px-4" style={fontStyle}>
           <div className="text-center animate-scaleIn">
             <div className="flex justify-center mb-6">
-               <div className="p-6 rounded-full bg-amber-500/10 border border-amber-500/20">
-                 <Zap className="w-16 h-16 text-amber-500 animate-pulse" />
+               <div className="p-5 sm:p-6 rounded-full bg-amber-500/10 border border-amber-500/20">
+                 <Zap className="w-12 h-12 sm:w-16 sm:h-16 text-amber-500 animate-pulse" />
                </div>
             </div>
             <h2 className="text-gray-500 text-sm font-bold uppercase tracking-[0.5em] mb-2">Set Complete</h2>
-            <h1 className="text-6xl md:text-8xl font-black text-white tracking-tighter mb-4 uppercase">
+            <h1 className="text-4xl sm:text-6xl md:text-8xl font-black text-white tracking-tighter mb-4 uppercase">
               UP NEXT: <span className="text-amber-500">{currentSet}s</span>
             </h1>
             <p className="text-gray-400 text-sm font-medium tracking-wide">Strategy badalne ka waqt hai. Specialists are coming up...</p>
-            <div className="mt-10 flex justify-center gap-2">
+            <div className="mt-8 sm:mt-10 flex justify-center gap-2">
               <div className="w-2 h-2 rounded-full bg-amber-500 animate-bounce [animation-delay:-0.3s]"></div>
               <div className="w-2 h-2 rounded-full bg-amber-500 animate-bounce [animation-delay:-0.15s]"></div>
               <div className="w-2 h-2 rounded-full bg-amber-500 animate-bounce"></div>
@@ -1218,12 +1276,13 @@ export default function Home() {
         </div>
       )}
 
+      {/* Unsold modal */}
       {showUnsoldModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md px-4" style={fontStyle}>
-          <div className="relative w-full max-w-md max-h-[75vh] overflow-hidden rounded-[32px] bg-[#0F0F0F] border border-white/10 p-8 shadow-2xl flex flex-col text-white">
+          <div className="relative w-full max-w-md max-h-[75vh] overflow-hidden rounded-[32px] bg-[#0F0F0F] border border-white/10 p-6 sm:p-8 shadow-2xl flex flex-col text-white">
              <div className="flex items-center justify-between mb-6">
                 <h2 className="text-sm font-bold uppercase tracking-widest">Unsold Players</h2>
-                <button onClick={() => setShowUnsoldModal(false)} className="text-gray-500 hover:text-white transition">✕</button>
+                <button onClick={() => setShowUnsoldModal(false)} className="text-gray-500 hover:text-white transition text-lg">✕</button>
              </div>
              <div className="overflow-y-auto flex-1 pr-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {unsoldPlayers.length > 0 ? (
@@ -1241,13 +1300,14 @@ export default function Home() {
         </div>
       )}
 
+      {/* Teams modal */}
       {showTeamsModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md" style={fontStyle}>
-          <div className="relative w-full max-w-md max-h-[75vh] overflow-hidden rounded-[32px] bg-[#0F0F0F] border border-white/10 p-6 shadow-2xl flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md px-4" style={fontStyle}>
+          <div className="relative w-full max-w-md max-h-[75vh] overflow-hidden rounded-[32px] bg-[#0F0F0F] border border-white/10 p-5 sm:p-6 shadow-2xl flex flex-col">
             <div className="flex items-center justify-between mb-6">
               {viewingTeam ? (<button onClick={() => setViewingTeam(null)} className="flex items-center gap-1 text-gray-400 hover:text-white transition"><ChevronLeft className="w-5 h-5" /><span className="text-xs font-bold uppercase tracking-widest">Back</span></button>) : <div className="w-8"></div>}
               <h2 className="text-sm font-bold text-white uppercase tracking-widest">{viewingTeam ? "Squad" : "Teams"}</h2>
-              <button onClick={() => setShowTeamsModal(false)} className="text-gray-500 hover:text-white">✕</button>
+              <button onClick={() => setShowTeamsModal(false)} className="text-gray-500 hover:text-white text-lg">✕</button>
             </div>
             <div className="overflow-y-auto pr-1 flex-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {!viewingTeam ? (
@@ -1279,10 +1339,11 @@ export default function Home() {
         </div>
       )}
 
+      {/* Requirements modal */}
       {showReq && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md" style={fontStyle}>
-          <div className="relative w-full max-w-sm rounded-[32px] bg-[#0F0F0F] border border-white/10 p-8 shadow-2xl">
-            <button onClick={() => setShowReq(false)} className="absolute top-6 right-6 text-gray-500 hover:text-white transition">✕</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md px-4" style={fontStyle}>
+          <div className="relative w-full max-w-sm rounded-[32px] bg-[#0F0F0F] border border-white/10 p-7 sm:p-8 shadow-2xl">
+            <button onClick={() => setShowReq(false)} className="absolute top-6 right-6 text-gray-500 hover:text-white transition text-lg">✕</button>
             <h2 className="text-center text-xs font-bold mb-6 text-white uppercase tracking-widest">Requirements</h2>
             <div className="space-y-3">
               {[{ label: "Batsman", count: userCounts.Batsman, target: 5 }, { label: "Bowler", count: userCounts.Bowler, target: 4 }, { label: "All-rounder", count: userCounts["All-rounder"], target: 4 }, { label: "Wicketkeeper", count: userCounts.Wicketkeeper, target: 2 }].map((item, idx) => (
