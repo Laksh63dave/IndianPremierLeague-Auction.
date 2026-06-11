@@ -230,7 +230,7 @@ All PRs are welcome — bug fixes, UI improvements, new player data, anything.
 Built by **Laksh Dave**.
 
 [![GitHub](https://img.shields.io/badge/GitHub-Laksh63dave-black?style=flat-square&logo=github)](https://github.com/Laksh63dave)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-lakshdave18-blue?style=flat-square&logo=linkedin)](https://www.linkedin.com/in/laksh63dave/)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-laksh63dave-blue?style=flat-square&logo=linkedin)](https://www.linkedin.com/in/laksh63dave/)
 [![Instagram](https://img.shields.io/badge/Instagram-lakshhh__63-pink?style=flat-square&logo=instagram)](https://www.instagram.com/lakshhh_63/)
 
 ---
