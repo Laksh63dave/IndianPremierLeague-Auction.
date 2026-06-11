@@ -9,7 +9,7 @@
 [![Deployed on Vercel](https://img.shields.io/badge/Deployed-Vercel-black?style=flat-square&logo=vercel)](https://laksh-iplauction.vercel.app/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 
-**[Live Demo →](https://laksh-iplauction.vercel.app/)**
+[![Live Demo](https://img.shields.io/badge/▶%20Live%20Demo-laksh--iplauction.vercel.app-F5A623?style=for-the-badge&labelColor=0D0D0D)](https://laksh-iplauction.vercel.app/)
 
 </div>
 
