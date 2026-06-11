@@ -1,5 +1,5 @@
 <div align="center">
-<img src="https://capsule-render.vercel.app/api?type=waving&color=F5A623&height=120&section=header&text=IPL%20Auction%202026&fontSize=42&fontColor=0D0D0D&fontAlignY=65&animation=fadeIn" alt="IPL Auction 2026" />
+<img src="https://capsule-render.vercel.app/api?type=waving&color=F5A623&height=120&section=header&text=IPL%20Auction%202026&fontSize=42&fontColor=FFFFFF&fontAlignY=65&animation=fadeIn" />
 
 # 🏏 IPL Auction 2026
 
