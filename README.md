@@ -1,8 +1,6 @@
 <div align="center">
 <img src="https://capsule-render.vercel.app/api?type=waving&color=F5A623&height=120&section=header&text=IPL%20Auction%202026&fontSize=42&fontColor=FFFFFF&fontAlignY=65&animation=fadeIn" />
 
-# 🏏 IPL Auction 2026
-
 ### Build your dream squad. Rule the auction.
 
 [![Next.js](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=next.js)](https://nextjs.org/)
