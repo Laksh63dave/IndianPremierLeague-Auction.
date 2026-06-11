@@ -1091,7 +1091,7 @@ export default function Home() {
                         </span>
                       </div>
                       <span className="text-[9px] uppercase font-mono text-zinc-600 tracking-wider">
-                        AUCTION ROOM #1
+                        IPL AUCTION 2026.
                       </span>
                     </div>
 
