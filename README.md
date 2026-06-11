@@ -1,7 +1,7 @@
 <div align="center">
 
 # 🏏 IPL Auction 2026
-  
+
 ### Build your dream squad. Rule the auction.
 
 [![Next.js](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=next.js)](https://nextjs.org/)
@@ -11,6 +11,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 
 **[Live Demo →](https://laksh-iplauction.vercel.app/)**
+
 </div>
 
 ---
@@ -109,6 +110,7 @@ npm install
 
 # Run locally
 npm run dev
+```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
@@ -168,86 +170,75 @@ If you want to follow progress or contribute, watch the repo.
 
 ---
 
-## Contributing
-
-Found a Bug? Have a Feature Idea?
+## Found a Bug? Have a Feature Idea?
 
 Feedback is what makes this game better. Here are all the ways you can reach me:
 
-Option 1 — GitHub Issues (best for bugs)
+### Option 1 — GitHub Issues (best for bugs)
 
 This is the most useful channel because it keeps everything tracked and public so others can upvote or add context.
 
-To report a bug:
+**To report a bug:**
+1. Go to [Issues](https://github.com/Laksh63dave/IndianPremierLeague-Auction/issues) → **New Issue** → select **Bug Report**
+2. Include:
+   - What you were doing when it happened
+   - What you expected vs what actually happened
+   - Your browser and device (e.g. Chrome on Android)
+   - A screenshot if possible
 
+**To suggest a feature:**
+1. Go to [Issues](https://github.com/Laksh63dave/IndianPremierLeague-Auction/issues) → **New Issue** → select **Feature Request**
+2. Describe the idea and why it would improve the game
 
-Go to Issues → New Issue → select Bug Report
-Include:
+> You need a free GitHub account to open an issue. Takes 2 minutes to sign up.
 
-What you were doing when it happened
-What you expected vs what actually happened
-Your browser and device (e.g. Chrome on Android)
-A screenshot if possible
+---
 
-
-
-
-
-To suggest a feature:
-
-
-Go to Issues → New Issue → select Feature Request
-Describe the idea and why it would improve the game
-
-
-
-You need a free GitHub account to open an issue. Takes 2 minutes to sign up.
-
-
-
-
-Option 2 — Instagram DM (quickest)
+### Option 2 — Instagram DM (quickest)
 
 If you don't have GitHub and just want to quickly tell me something, slide into my DMs:
 
-@lakshhh_63 on Instagram
+**[@lakshhh_63](https://www.instagram.com/lakshhh_63/)** on Instagram
 
 Drop a message with what you found or what you'd like to see. I check this regularly.
 
+---
 
-Option 3 — LinkedIn (for serious feedback or collabs)
+### Option 3 — LinkedIn (for serious feedback or collabs)
 
 If you're a developer and want to discuss the project more technically, or have ideas about collaborating:
 
-linkedin.com/in/lakshdave18
+**[linkedin.com/in/lakshdave18](https://www.linkedin.com/in/lakshdave18/)**
 
+---
 
-Option 4 — Submit a Pull Request (for developers)
+### Option 4 — Submit a Pull Request (for developers)
 
 If you want to fix something yourself:
 
-
-Fork the repo
-Create a branch: git checkout -b fix/your-fix-name
-Make your changes and commit: git commit -m 'Fix: describe what you fixed'
-Push and open a PR against main
-
+1. Fork the repo
+2. Create a branch: `git checkout -b fix/your-fix-name`
+3. Make your changes and commit: `git commit -m 'Fix: describe what you fixed'`
+4. Push and open a PR against `main`
 
 All PRs are welcome — bug fixes, UI improvements, new player data, anything.
 
+---
 
-Author
+## Author
 
-Built by Laksh Dave — a BSc Computer Science student and cricket fan from Mumbai.
+Built by **Laksh Dave** — a BSc Computer Science student and cricket fan from Mumbai.
 
-Show Image
-Show Image
-Show Image
+[![GitHub](https://img.shields.io/badge/GitHub-Laksh63dave-black?style=flat-square&logo=github)](https://github.com/Laksh63dave)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-lakshdave18-blue?style=flat-square&logo=linkedin)](https://www.linkedin.com/in/lakshdave18/)
+[![Instagram](https://img.shields.io/badge/Instagram-lakshhh__63-pink?style=flat-square&logo=instagram)](https://www.instagram.com/lakshhh_63/)
 
+---
 
 <div align="center">
+
 © 2026 Laksh Dave · MIT License
 
-Not affiliated with BCCI or IPL. Built for fun.
+*Not affiliated with BCCI or IPL. Built for fun.*
 
 </div>
