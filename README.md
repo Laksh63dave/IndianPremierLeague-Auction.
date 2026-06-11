@@ -1,4 +1,5 @@
 <div align="center">
+<img src="https://capsule-render.vercel.app/api?type=waving&color=F5A623&height=120&section=header&text=IPL%20Auction%202026&fontSize=42&fontColor=0D0D0D&fontAlignY=65&animation=fadeIn" alt="IPL Auction 2026" />
 
 # 🏏 IPL Auction 2026
 
@@ -236,9 +237,7 @@ Built by **Laksh Dave**.
 ---
 
 <div align="center">
+<sub>© 2026 Laksh Dave · Not affiliated with BCCI or IPL · Built for fun</sub>
 
-© 2026 Laksh Dave.
-
-*Not affiliated with BCCI or IPL. Built for fun.*
-
+<img src="https://capsule-render.vercel.app/api?type=waving&color=F5A623&height=80&section=footer" />
 </div>
