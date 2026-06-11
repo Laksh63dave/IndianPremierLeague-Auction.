@@ -208,7 +208,7 @@ Drop a message with what you found or what you'd like to see. I check this regul
 
 If you're a developer and want to discuss the project more technically, or have ideas about collaborating:
 
-**[linkedin.com/in/lakshdave18](https://www.linkedin.com/in/lakshdave18/)**
+**[linkedin.com/in/laksh63dave](https://www.linkedin.com/in/laksh63dave/)**
 
 ---
 
@@ -227,7 +227,7 @@ All PRs are welcome — bug fixes, UI improvements, new player data, anything.
 
 ## Author
 
-Built by **Laksh Dave** — a BSc Computer Science student and cricket fan from Mumbai.
+Built by **Laksh Dave**.
 
 [![GitHub](https://img.shields.io/badge/GitHub-Laksh63dave-black?style=flat-square&logo=github)](https://github.com/Laksh63dave)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-lakshdave18-blue?style=flat-square&logo=linkedin)](https://www.linkedin.com/in/lakshdave18/)
@@ -237,7 +237,7 @@ Built by **Laksh Dave** — a BSc Computer Science student and cricket fan from 
 
 <div align="center">
 
-© 2026 Laksh Dave · MIT License
+© 2026 Laksh Dave.
 
 *Not affiliated with BCCI or IPL. Built for fun.*
 
