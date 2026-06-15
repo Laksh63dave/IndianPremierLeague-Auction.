@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Zap, Trophy, ClipboardList, LayoutGrid, ChevronLeft, Users, Search, Star, ShieldCheck, Banknote, Target, Laptop, Briefcase, Boxes, MessageSquare } from "lucide-react";
 import playersData from "@/players";
 import { shuffleArray } from "@/shuffle";
@@ -102,69 +102,6 @@ const teamSoldAnthems: Record<string, string[]> = {
   ],
 };
 
-// Country flag emoji helper
-const countryFlags: Record<string, string> = {
-  "India": "🇮🇳",
-  "Australia": "🇦🇺",
-  "England": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
-  "South Africa": "🇿🇦",
-  "New Zealand": "🇳🇿",
-  "West Indies": "🏝️",
-  "Pakistan": "🇵🇰",
-  "Sri Lanka": "🇱🇰",
-  "Bangladesh": "🇧🇩",
-  "Afghanistan": "🇦🇫",
-  "Zimbabwe": "🇿🇼",
-  "Ireland": "🇮🇪",
-  "Netherlands": "🇳🇱",
-  "Scotland": "🏴󠁧󠁢󠁳󠁣󠁴󠁿",
-};
-
-const getFlag = (country: string) => countryFlags[country] || "🌍";
-
-// ── Circular Timer SVG ────────────────────────────────────────────────────────
-const CircularTimer = ({ timer, maxTime = 10 }: { timer: number; maxTime?: number }) => {
-  const size = 56;
-  const strokeWidth = 4;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const progress = timer / maxTime;
-  const strokeDashoffset = circumference * (1 - progress);
-  const isDanger = timer <= 3;
-
-  return (
-    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
-      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-        {/* Track */}
-        <circle
-          cx={size / 2} cy={size / 2} r={radius}
-          fill="none"
-          stroke="rgba(0,0,0,0.08)"
-          strokeWidth={strokeWidth}
-        />
-        {/* Arc */}
-        <circle
-          cx={size / 2} cy={size / 2} r={radius}
-          fill="none"
-          stroke={isDanger ? '#ef4444' : '#f59e0b'}
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={strokeDashoffset}
-          style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.3s ease' }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className={`text-[14px] font-bold tabular-nums leading-none ${isDanger ? 'text-red-500' : 'text-gray-800'}`}>
-          {timer}
-        </span>
-        <span className="text-[7px] font-semibold text-gray-400 uppercase tracking-wide leading-none mt-0.5">sec</span>
-      </div>
-    </div>
-  );
-};
-
-// ── Circular Timer (small, for mobile header) ─────────────────────────────────
 const CircularTimerSm = ({ timer, maxTime = 10 }: { timer: number; maxTime?: number }) => {
   const size = 44;
   const strokeWidth = 3.5;
@@ -173,7 +110,7 @@ const CircularTimerSm = ({ timer, maxTime = 10 }: { timer: number; maxTime?: num
   const progress = timer / maxTime;
   const strokeDashoffset = circumference * (1 - progress);
   const isDanger = timer <= 3;
-
+ 
   return (
     <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
@@ -257,15 +194,6 @@ export default function Home() {
   const [commentary, setCommentary] = useState<string[]>([
     "🎙️ Welcome to the IPL 2026 Mega Auction room! The auctioneer has taken the podium. Raise your paddles, captains."
   ]);
-
-  // ── NEW: Bid history ticker ───────────────────────────────────────────────
-  const [bidHistory, setBidHistory] = useState<{ team: string; amount: number; ts: number }[]>([]);
-
-  // ── NEW: Bid animation key (flips on each new bid) ───────────────────────
-  const [bidAnimKey, setBidAnimKey] = useState(0);
-
-  // ── NEW: AI watching count ────────────────────────────────────────────────
-  const [aiWatching, setAiWatching] = useState(0);
 
   const commentaryTemplates = {
     openers: [
@@ -373,13 +301,6 @@ export default function Home() {
     }, 1000);
     return () => clearInterval(interval);
   }, [timer, auctionStarted, auctionEnded, showSetIntro]);
-
-  // ── NEW: Update aiWatching when bid changes ───────────────────────────────
-  useEffect(() => {
-    if (!auctionStarted || auctionEnded) return;
-    const count = Math.floor(Math.random() * 4) + (hasBid ? 2 : 1);
-    setAiWatching(Math.min(count, 9));
-  }, [bid, index]);
 
   useEffect(() => {
     if (!auctionStarted || teams.length === 0 || auctionEnded || showSetIntro) return;
@@ -507,10 +428,6 @@ export default function Home() {
           timer: timer
         }));
 
-        // ── NEW: push to bid history + trigger animation ──────────────────
-        setBidHistory(prev => [{ team: ai.name, amount: nextBidValue, ts: Date.now() }, ...prev].slice(0, 10));
-        setBidAnimKey(k => k + 1);
-
         setBid(nextBidValue);
         setCurrentBidder(ai.name);
         setTimer(10);
@@ -547,10 +464,6 @@ export default function Home() {
     else if (nextBidValue >= currentPlayer.base * 2.5) userTemplate = "The {bidder} isn't backing down! Bid raised to ₹{bid} Cr!";
     
     logCommentary(parseTemplate(userTemplate, { bidder: user.name, bid: nextBidValue }));
-
-    // ── NEW: push user bid to history + trigger animation ─────────────────
-    setBidHistory(prev => [{ team: user.name, amount: nextBidValue, ts: Date.now() }, ...prev].slice(0, 10));
-    setBidAnimKey(k => k + 1);
 
     setBid(nextBidValue);
     setCurrentBidder(user.name);
@@ -626,7 +539,6 @@ export default function Home() {
       setTimer(10);
       setHasBid(false);
       setCurrentBidder(null);
-      setBidHistory([]);
     };
   };
 
@@ -665,9 +577,8 @@ export default function Home() {
   const selectedTeamData = teamsUI.find((t) => t.code === selectedTeamUI);
   const activeColor = selectedTeamData ? selectedTeamData.color : '#ea580c';
 
-  // ── NEW: Overseas count for header ────────────────────────────────────────
   const overseasCount = userTeam?.squad.filter((p: any) => p.overseas).length ?? 0;
-
+  
   // ─── SCREEN 1: TEAM SELECT (UNCHANGED) ───────────────────────────────────────
   if (!selectedTeam) {
     return (
@@ -992,11 +903,11 @@ export default function Home() {
     );
   }
 
-  // ─── SCREEN 4: MAIN AUCTION — WITH UI UPGRADES ───────────────────────────────
+  // ─── SCREEN 4: MAIN AUCTION — REDESIGNED ─────────────────────────────────────
   const glass = "bg-white/60 backdrop-blur-2xl border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.9)]";
   const glassDim = "bg-white/40 backdrop-blur-xl border border-white/60";
   const pageBg = "min-h-screen bg-gradient-to-br from-slate-100 via-blue-50/40 to-emerald-50/30";
-
+ 
   const roleBadgeClass = player?.role === "Batsman"
     ? "bg-blue-100 text-blue-700 border border-blue-200"
     : player?.role === "Bowler"
@@ -1004,34 +915,25 @@ export default function Home() {
     : player?.role === "All-rounder"
     ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
     : "bg-amber-100 text-amber-700 border border-amber-200";
-
+ 
   // Role accent color for top bar on player card
   const roleAccentColor = player?.role === "Batsman" ? "#3b82f6"
     : player?.role === "Bowler" ? "#ef4444"
     : player?.role === "All-rounder" ? "#10b981"
     : "#f59e0b";
-
+ 
   // Rating bar color
   const ratingBarColor = player?.rating >= 92 ? "#22c55e"
     : player?.rating >= 85 ? "#f59e0b"
     : "#ef4444";
-
+ 
   const bidderColor = currentBidder ? teamColors[currentBidder] : "#f59e0b";
-
+ 
   // Auction progress %
   const auctionProgressPct = Math.round((index / players.length) * 100);
 
   return (
     <>
-      {/* ── Bid jump animation keyframes injected once ── */}
-      <style>{`
-        @keyframes bidFlip {
-          0%   { transform: translateY(6px); opacity: 0; }
-          100% { transform: translateY(0px); opacity: 1; }
-        }
-        .bid-flip { animation: bidFlip 0.28s cubic-bezier(0.22,1,0.36,1) both; }
-      `}</style>
-
       {/* ── Page shell ── */}
       <div className={`${pageBg} text-gray-900 p-3 sm:p-4 pb-20 lg:pb-6`} style={fontStyle}>
 
@@ -1048,67 +950,36 @@ export default function Home() {
         {/* ── Header ── */}
         <div className="max-w-[1400px] mx-auto mb-3 sm:mb-4">
 
-          {/* Desktop header — MODIFIED: circular timer, squad/overseas counts, auction progress strip */}
-          <div className="hidden lg:flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <div className={`${glass} rounded-2xl flex items-stretch overflow-hidden`}>
-                {/* Purse */}
-                <div className="px-5 py-2.5 border-r border-black/[0.06]">
-                  <span className="text-[9px] text-gray-400 font-bold uppercase tracking-[0.12em] block mb-0.5">Purse</span>
-                  <span className="text-emerald-600 font-bold text-lg leading-tight">₹{userTeam?.purse} Cr</span>
-                </div>
-                {/* Spent so far */}
-                <div className="px-5 py-2.5 border-r border-black/[0.06]">
-                  <span className="text-[9px] text-gray-400 font-bold uppercase tracking-[0.12em] block mb-0.5">Spent</span>
-                  <span className="text-gray-700 font-bold text-lg leading-tight">₹{(120 - (userTeam?.purse ?? 120)).toFixed(2)} Cr</span>
-                </div>
-                {/* Circular Timer */}
+          {/* Desktop header */}
+          <div className="hidden lg:flex items-center justify-between">
+            <div className={`${glass} rounded-2xl flex items-stretch overflow-hidden`}>
+              {/* Purse */}
+              <div className="px-5 py-2.5 border-r border-black/[0.06]">
+                <span className="text-[9px] text-gray-400 font-bold uppercase tracking-[0.12em] block mb-0.5">Purse</span>
+                <span className="text-emerald-600 font-bold text-lg leading-tight">₹{userTeam?.purse} Cr</span>
+              </div>
+              {/* Circular Timer */}
                 <div className="px-5 py-2 border-r border-black/[0.06] flex items-center">
-                  <CircularTimer timer={timer} maxTime={10} />
+                  <CircularTimerSm timer={timer} maxTime={10} />
                 </div>
-                {/* Squad count */}
-                <div className="px-5 py-2.5 border-r border-black/[0.06]">
-                  <span className="text-[9px] text-gray-400 font-bold uppercase tracking-[0.12em] block mb-0.5">Squad</span>
-                  <span className="text-gray-800 font-bold text-lg leading-tight tabular-nums">{userTeam?.squad.length ?? 0}<span className="text-gray-400 text-sm font-semibold">/15</span></span>
-                </div>
-                {/* Overseas count */}
-                <div className="px-5 py-2.5 border-r border-black/[0.06]">
-                  <span className="text-[9px] text-gray-400 font-bold uppercase tracking-[0.12em] block mb-0.5">Overseas</span>
-                  <span className={`font-bold text-lg leading-tight tabular-nums ${overseasCount >= 4 ? "text-red-500" : "text-gray-800"}`}>{overseasCount}<span className="text-gray-400 text-sm font-semibold">/4</span></span>
-                </div>
-                {/* Action buttons */}
-                {[
-                  { label: "Requirements", icon: ClipboardList, action: () => setShowReq(true) },
-                  { label: "Teams", icon: LayoutGrid, action: () => { setShowTeamsModal(true); setViewingTeam(null); } },
-                  { label: "Unsold", icon: Zap, action: () => setShowUnsoldModal(true) },
-                ].map(({ label, icon: Icon, action }) => (
-                  <button
-                    key={label}
-                    onClick={action}
-                    className="px-5 py-2.5 border-r border-black/[0.06] last:border-r-0 text-[11px] font-semibold text-gray-500 hover:text-gray-900 hover:bg-black/[0.03] flex items-center gap-2 transition-all uppercase tracking-wide"
-                  >
-                    <Icon className="w-3.5 h-3.5" /> {label}
-                  </button>
-                ))}
-              </div>
-              {/* Active set pill */}
-              <div className="bg-amber-50 border border-amber-200 px-4 py-2 rounded-xl shadow-sm">
-                <span className="text-amber-700 text-[10px] font-bold uppercase tracking-[0.12em]">Active Set: {player?.role}</span>
-              </div>
+              {/* Action buttons */}
+              {[
+                { label: "Requirements", icon: ClipboardList, action: () => setShowReq(true) },
+                { label: "Teams", icon: LayoutGrid, action: () => { setShowTeamsModal(true); setViewingTeam(null); } },
+                { label: "Unsold", icon: Zap, action: () => setShowUnsoldModal(true) },
+              ].map(({ label, icon: Icon, action }) => (
+                <button
+                  key={label}
+                  onClick={action}
+                  className="px-5 py-2.5 border-r border-black/[0.06] last:border-r-0 text-[11px] font-semibold text-gray-500 hover:text-gray-900 hover:bg-black/[0.03] flex items-center gap-2 transition-all uppercase tracking-wide"
+                >
+                  <Icon className="w-3.5 h-3.5" /> {label}
+                </button>
+              ))}
             </div>
-
-            {/* ── NEW: Auction progress strip ── */}
-            <div className={`${glass} rounded-xl px-5 py-2.5 flex items-center gap-4`}>
-              <span className="text-[10px] text-gray-500 font-semibold whitespace-nowrap">
-                Auction progress — Lot {index + 1} of {players.length}
-              </span>
-              <div className="flex-1 h-1.5 bg-black/[0.06] rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-blue-500 transition-all duration-700"
-                  style={{ width: `${auctionProgressPct}%` }}
-                />
-              </div>
-              <span className="text-[10px] font-bold text-blue-600 tabular-nums">{auctionProgressPct}%</span>
+            {/* Active set pill */}
+            <div className="bg-amber-50 border border-amber-200 px-4 py-2 rounded-xl shadow-sm">
+              <span className="text-amber-700 text-[10px] font-bold uppercase tracking-[0.12em]">Active Set: {player?.role}</span>
             </div>
           </div>
 
@@ -1123,16 +994,6 @@ export default function Home() {
               <div className="px-2 py-1.5 border-r border-black/[0.06] flex items-center justify-center">
                 <CircularTimerSm timer={timer} maxTime={10} />
               </div>
-              {/* Squad */}
-              <div className="px-3 py-2 border-r border-black/[0.06] flex-1">
-                <span className="text-[8px] text-gray-400 font-bold uppercase tracking-widest block">Squad</span>
-                <span className="font-bold text-sm leading-tight tabular-nums text-gray-800">{userTeam?.squad.length ?? 0}<span className="text-gray-400 text-xs">/15</span></span>
-              </div>
-              {/* Overseas */}
-              <div className="px-3 py-2 flex-1">
-                <span className="text-[8px] text-gray-400 font-bold uppercase tracking-widest block">Ovrss</span>
-                <span className={`font-bold text-sm leading-tight tabular-nums ${overseasCount >= 4 ? "text-red-500" : "text-gray-800"}`}>{overseasCount}<span className="text-gray-400 text-xs">/4</span></span>
-              </div>
             </div>
             <div className="flex gap-1.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <button onClick={() => setShowReq(true)} className={`${glassDim} flex-shrink-0 rounded-xl p-2.5 text-gray-500 hover:text-gray-800 transition`}><ClipboardList className="w-4 h-4" /></button>
@@ -1143,7 +1004,7 @@ export default function Home() {
               </div>
             </div>
           </div>
-
+ 
           {/* Mobile auction progress strip */}
           <div className="flex lg:hidden items-center gap-2 mt-2">
             <span className="text-[9px] text-gray-500 font-semibold whitespace-nowrap">Lot {index + 1}/{players.length}</span>
@@ -1153,11 +1014,11 @@ export default function Home() {
             <span className="text-[9px] font-bold text-blue-600 tabular-nums">{auctionProgressPct}%</span>
           </div>
         </div>
-
+ 
         {/* ── 3-column layout ── */}
         <div className="max-w-[1400px] mx-auto flex gap-3">
 
-          {/* ── Scout sidebar (UNCHANGED) ── */}
+          {/* ── Scout sidebar ── */}
           <div className={`
             w-[200px] flex-col overflow-hidden rounded-2xl
             hidden lg:flex
@@ -1236,9 +1097,9 @@ export default function Home() {
               </div>
             ) : (
               <>
-                {/* ── Player card — MODIFIED ── */}
+                {/* ── Player card ── */}
                 <div
-                  className={`w-full max-w-lg rounded-[32px] overflow-hidden text-center transition-all duration-500 ${glass}`}
+                  className={`w-full max-w-lg rounded-[32px] p-7 sm:p-9 text-center transition-all duration-500 ${glass}`}
                   style={{
                     boxShadow: isFavoriteActive
                       ? `0 0 0 3px #fef3c7, 0 20px 60px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.9)`
@@ -1247,44 +1108,31 @@ export default function Home() {
                       : `0 20px 60px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9)`,
                   }}
                 >
-                  {/* Role accent stripe at top */}
-                  <div className="h-1 w-full" style={{ backgroundColor: roleAccentColor }} />
-
-                  <div className="p-7 sm:p-9">
-                    {/* Lot number + fav star row */}
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-[9px] font-semibold text-gray-400 uppercase tracking-[0.14em]">
-                        Lot {index + 1} of {players.length}
-                      </span>
-                      {isFavoriteActive && (
-                        <Star className="w-4 h-4 text-amber-500 fill-amber-500 animate-pulse" />
-                      )}
+                  {/* Fav star */}
+                  {isFavoriteActive && (
+                    <div className="flex justify-center mb-2">
+                      <Star className="w-4 h-4 text-amber-500 fill-amber-500 animate-pulse" />
                     </div>
+                  )}
 
-                    {/* Role badge */}
-                    <div className={`text-[9px] mb-4 uppercase font-bold tracking-[0.18em] px-3 py-1 inline-block rounded-full ${roleBadgeClass}`}>
-                      {player?.role}
-                    </div>
+                  {/* Role badge */}
+                  <div className={`text-[9px] mb-4 uppercase font-bold tracking-[0.18em] px-3 py-1 inline-block rounded-full ${roleBadgeClass}`}>
+                    {player?.role}
+                  </div>
 
-                    {/* Player name with flag emoji */}
-                    <h1 className="text-[28px] sm:text-[38px] font-bold tracking-[-0.04em] text-gray-900 leading-tight mb-1">
-                      {getFlag(player?.country)} {player?.name}
-                    </h1>
+                  {/* Player name */}
+                  <h1 className="text-[28px] sm:text-[38px] font-bold tracking-[-0.04em] text-gray-900 leading-tight mb-3">
+                    {player?.name}
+                  </h1>
 
-                    {/* AI watching indicator */}
-                    {hasBid && aiWatching > 0 && (
-                      <p className="text-[10px] text-gray-400 font-medium mb-3">
-                        👀 {aiWatching} team{aiWatching !== 1 ? 's' : ''} watching
-                      </p>
-                    )}
+                  {/* Meta pills */}
+                  <div className="flex items-center justify-center gap-2 flex-wrap mb-6">
+                    <span className="bg-black/[0.05] border border-black/[0.07] px-3 py-1 rounded-full text-[10px] text-gray-600 font-semibold">⭐ {player?.rating} Rating</span>
+                    <span className="bg-black/[0.05] border border-black/[0.07] px-3 py-1 rounded-full text-[10px] text-gray-600 font-medium">{player?.style}</span>
+                    <span className="bg-black/[0.05] border border-black/[0.07] px-3 py-1 rounded-full text-[10px] text-gray-700 font-semibold">{player?.country}</span>
+                  </div>
 
-                    {/* Meta pills — country removed (now inline with name) */}
-                    <div className="flex items-center justify-center gap-2 flex-wrap mb-4">
-                      <span className="bg-black/[0.05] border border-black/[0.07] px-3 py-1 rounded-full text-[10px] text-gray-600 font-semibold">⭐ {player?.rating} Rating</span>
-                      <span className="bg-black/[0.05] border border-black/[0.07] px-3 py-1 rounded-full text-[10px] text-gray-600 font-medium">{player?.style}</span>
-                    </div>
-
-                    {/* ── Rating bar ── */}
+                  {/* ── Rating bar ── */}
                     <div className="mb-5">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-[9px] text-gray-400 font-semibold uppercase tracking-widest">Player Rating</span>
@@ -1298,130 +1146,83 @@ export default function Home() {
                       </div>
                     </div>
 
-                    {/* Divider */}
-                    <div className="h-px bg-black/[0.06] mb-5" />
+                  {/* Divider */}
+                  <div className="h-px bg-black/[0.06] mb-5" />
 
-                    {/* Bid amount — ANIMATED */}
-                    <div className="text-[10px] text-gray-400 font-semibold uppercase tracking-[0.12em] mb-1">Current Bid</div>
-                    <div
-                      key={bidAnimKey}
-                      className="bid-flip text-[52px] sm:text-[64px] font-bold text-emerald-600 tabular-nums tracking-[-0.05em] leading-none mb-5"
-                    >
-                      ₹{bid} Cr
-                    </div>
-
-                    {/* Leading bidder */}
-                    <div
-                      className="flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-2xl mb-6 transition-all duration-300"
-                      style={{
-                        background: currentBidder ? `${teamColors[currentBidder]}0f` : "rgba(0,0,0,0.03)",
-                        border: `1px solid ${currentBidder ? `${teamColors[currentBidder]}30` : "rgba(0,0,0,0.06)"}`,
-                      }}
-                    >
-                      {currentBidder && (
-                        <img src={teamLogos[currentBidder]} className="w-6 h-6 object-contain" alt="" />
-                      )}
-                      <span
-                        className="text-[13px] font-semibold"
-                        style={{ color: currentBidder ? teamColors[currentBidder] : "#9ca3af" }}
-                      >
-                        {currentBidder ? `${currentBidder} is leading` : "Awaiting first bid…"}
-                      </span>
-                    </div>
-
-                    {/* Bid button */}
-                    <button
-                      onClick={increaseBid}
-                      disabled={currentBidder === userTeam?.name || sold}
-                      className="w-full py-4 rounded-2xl font-bold text-[15px] transition-all duration-300 active:scale-[0.98]"
-                      style={{
-                        background: currentBidder === userTeam?.name
-                          ? "linear-gradient(135deg, #d1fae5, #a7f3d0)"
-                          : currentBidder
-                          ? `linear-gradient(135deg, ${teamColors[currentBidder]}, ${teamColors[currentBidder]}cc)`
-                          : "linear-gradient(135deg, #f59e0b, #ea580c)",
-                        color: currentBidder === userTeam?.name ? "#065f46" : "#fff",
-                        boxShadow: currentBidder === userTeam?.name
-                          ? "none"
-                          : currentBidder
-                          ? `0 10px 30px ${teamColors[currentBidder]}44`
-                          : "0 10px 30px rgba(245,158,11,0.45)",
-                        cursor: currentBidder === userTeam?.name ? "not-allowed" : "pointer",
-                        opacity: currentBidder === userTeam?.name ? 0.85 : 1,
-                      }}
-                    >
-                      {currentBidder === userTeam?.name
-                        ? "✅ You're Leading"
-                        : `Bid ₹${(bid + (bid >= 20 ? 1 : bid >= 10 ? 0.5 : 0.25)).toFixed(2)} Cr`}
-                    </button>
+                  {/* Bid amount */}
+                  <div className="text-[10px] text-gray-400 font-semibold uppercase tracking-[0.12em] mb-1">Current Bid</div>
+                  <div className="text-[52px] sm:text-[64px] font-bold text-emerald-600 tabular-nums tracking-[-0.05em] leading-none mb-5">
+                    ₹{bid} Cr
                   </div>
+
+                  {/* Leading bidder */}
+                  <div
+                    className="flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-2xl mb-6 transition-all duration-300"
+                    style={{
+                      background: currentBidder ? `${teamColors[currentBidder]}0f` : "rgba(0,0,0,0.03)",
+                      border: `1px solid ${currentBidder ? `${teamColors[currentBidder]}30` : "rgba(0,0,0,0.06)"}`,
+                    }}
+                  >
+                    {currentBidder && (
+                      <img src={teamLogos[currentBidder]} className="w-6 h-6 object-contain" alt="" />
+                    )}
+                    <span
+                      className="text-[13px] font-semibold"
+                      style={{ color: currentBidder ? teamColors[currentBidder] : "#9ca3af" }}
+                    >
+                      {currentBidder ? `${currentBidder} is leading` : "Awaiting first bid…"}
+                    </span>
+                  </div>
+
+                  {/* Bid button */}
+                  <button
+                    onClick={increaseBid}
+                    disabled={currentBidder === userTeam?.name || sold}
+                    className="w-full py-4 rounded-2xl font-bold text-[15px] transition-all duration-300 active:scale-[0.98]"
+                    style={{
+                      background: currentBidder === userTeam?.name
+                        ? "linear-gradient(135deg, #d1fae5, #a7f3d0)"
+                        : currentBidder
+                        ? `linear-gradient(135deg, ${teamColors[currentBidder]}, ${teamColors[currentBidder]}cc)`
+                        : "linear-gradient(135deg, #f59e0b, #ea580c)",
+                      color: currentBidder === userTeam?.name ? "#065f46" : "#fff",
+                      boxShadow: currentBidder === userTeam?.name
+                        ? "none"
+                        : currentBidder
+                        ? `0 10px 30px ${teamColors[currentBidder]}44`
+                        : "0 10px 30px rgba(245,158,11,0.45)",
+                      cursor: currentBidder === userTeam?.name ? "not-allowed" : "pointer",
+                      opacity: currentBidder === userTeam?.name ? 0.85 : 1,
+                    }}
+                  >
+                    {currentBidder === userTeam?.name
+                      ? "✅ You're Leading"
+                      : `Bid ₹${(bid + (bid >= 20 ? 1 : bid >= 10 ? 0.5 : 0.25)).toFixed(2)} Cr`}
+                  </button>
                 </div>
 
-                {/* ── Commentary / Bid History feed — MODIFIED ── */}
-                <div className={`w-full max-w-lg rounded-2xl text-left relative overflow-hidden ${glass}`}>
+                {/* ── Commentary feed ── */}
+                <div className={`w-full max-w-lg rounded-2xl p-4 sm:p-5 text-left relative overflow-hidden ${glass}`} style={{ minHeight: 120 }}>
                   <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-400/40 to-transparent" />
-
-                  {/* Tab header */}
-                  <div className="flex items-center gap-0 border-b border-black/[0.06]">
-                    <div className="flex items-center gap-2 px-4 py-3 border-r border-black/[0.06]">
-                      <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
-                      <span className="text-[9px] uppercase font-black tracking-[0.18em] text-amber-600">🎙 Commentary</span>
-                    </div>
-                    <div className="flex items-center gap-2 px-4 py-3">
-                      <span className="text-[9px] uppercase font-black tracking-[0.18em] text-gray-400">📋 Bid History</span>
-                    </div>
-                    <span className="ml-auto pr-4 text-[9px] text-gray-300 font-mono hidden sm:block">IPL AUCTION 2026</span>
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
+                    <span className="text-[9px] uppercase font-black tracking-[0.18em] text-amber-600">🎙 Live Broadcast Feed</span>
+                    <span className="ml-auto text-[9px] text-gray-300 font-mono hidden sm:block">IPL AUCTION 2026</span>
                   </div>
-
-                  <div className="flex gap-0">
-                    {/* Commentary col */}
-                    <div className="flex-1 p-4 border-r border-black/[0.06] space-y-2 overflow-y-auto max-h-28 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                      {commentary.map((line, idx) => (
-                        <div key={idx} className={`flex items-start gap-2 transition-all duration-500 ${idx === 0 ? "" : "opacity-40"}`}>
-                          <span className={`text-[10px] mt-0.5 flex-shrink-0 ${idx === 0 ? "text-amber-500" : "text-gray-300"}`}>{idx === 0 ? "⚡" : "·"}</span>
-                          <p className={`leading-relaxed flex-1 ${idx === 0 ? "text-[12px] sm:text-[13px] font-medium text-gray-800" : "text-[10px] text-gray-500"}`}>{line}</p>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* ── NEW: Bid history col ── */}
-                    <div className="w-[180px] sm:w-[210px] flex-shrink-0 overflow-y-auto max-h-28 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                      {bidHistory.length === 0 ? (
-                        <p className="text-[10px] text-gray-400 italic p-4">No bids yet.</p>
-                      ) : (
-                        bidHistory.map((entry, idx) => {
-                          const color = teamColors[entry.team] ?? "#9ca3af";
-                          const isLeader = idx === 0;
-                          const secondsAgo = Math.round((Date.now() - entry.ts) / 1000);
-                          return (
-                            <div
-                              key={idx}
-                              className={`flex items-center gap-2 px-3 py-2 border-b border-black/[0.05] transition-all ${isLeader ? "bg-white/70" : ""}`}
-                            >
-                              {/* Team colour dot */}
-                              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-[9px] font-bold truncate" style={{ color }}>
-                                  {entry.team.replace(" Indians", "").replace(" Super Kings", "").replace(" Challengers Bangalore", "").replace(" Knight Riders", "").replace(" Capitals", "").replace(" Kings", "").replace(" Royals", "").replace("Sunrisers ", "").replace(" Titans", "").replace(" Super Giants", "")}
-                                </p>
-                                <p className="text-[9px] text-gray-400">{secondsAgo === 0 ? "just now" : `${secondsAgo}s ago`}</p>
-                              </div>
-                              <span className={`text-[10px] font-black tabular-nums flex-shrink-0 ${isLeader ? "text-emerald-600" : "text-gray-500"}`}>
-                                ₹{entry.amount}
-                                {isLeader && <span className="ml-0.5 text-emerald-500">↑</span>}
-                              </span>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
+                  <div className="space-y-2 overflow-y-auto max-h-24 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    {commentary.map((line, idx) => (
+                      <div key={idx} className={`flex items-start gap-2 transition-all duration-500 ${idx === 0 ? "" : "opacity-40"}`}>
+                        <span className={`text-[10px] mt-0.5 flex-shrink-0 ${idx === 0 ? "text-amber-500" : "text-gray-300"}`}>{idx === 0 ? "⚡" : "·"}</span>
+                        <p className={`leading-relaxed flex-1 ${idx === 0 ? "text-[12px] sm:text-[13px] font-medium text-gray-800" : "text-[10px] text-gray-500"}`}>{line}</p>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </>
             )}
           </div>
 
-          {/* ── Squad sidebar — MODIFIED: shows spent so far ── */}
+          {/* ── Squad sidebar ── */}
           <div className={`
             w-[200px] overflow-y-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden rounded-2xl
             hidden lg:block
@@ -1450,15 +1251,9 @@ export default function Home() {
             </div>
 
             {/* Purse pill */}
-            <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 mb-2">
+            <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 mb-3">
               <span className="text-[10px] font-semibold text-emerald-700">Purse left</span>
               <span className="text-[14px] font-bold text-emerald-600">₹{userTeam?.purse} Cr</span>
-            </div>
-
-            {/* ── NEW: Spent so far pill ── */}
-            <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 mb-3">
-              <span className="text-[10px] font-semibold text-gray-500">Spent so far</span>
-              <span className="text-[13px] font-bold text-gray-700">₹{(120 - (userTeam?.purse ?? 120)).toFixed(2)} Cr</span>
             </div>
 
             {/* Squad header */}
@@ -1484,7 +1279,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* ── Mobile bottom tab bar (UNCHANGED) ── */}
+        {/* ── Mobile bottom tab bar ── */}
         <div className={`fixed bottom-0 left-0 right-0 z-30 lg:hidden ${glass} rounded-none border-x-0 border-b-0`}>
           <div className="flex">
             {([
@@ -1506,7 +1301,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Desktop footer (UNCHANGED) */}
+        {/* Desktop footer */}
         <footer className="max-w-[1400px] mx-auto mt-8 px-2 hidden lg:block" style={fontStyle}>
           <div className="pt-5 border-t border-black/[0.06] flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex flex-col items-center md:items-start">
@@ -1526,7 +1321,7 @@ export default function Home() {
         </footer>
       </div>
 
-      {/* ── SOLD OVERLAY (UNCHANGED) ── */}
+      {/* ── SOLD OVERLAY ── */}
       {sold && soldPlayer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-2xl px-4" style={fontStyle}>
           <div className={`${glass} px-10 py-10 rounded-[32px] text-center w-full max-w-sm`}>
@@ -1541,7 +1336,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* ── SET INTRO OVERLAY (UNCHANGED) ── */}
+      {/* ── SET INTRO OVERLAY ── */}
       {showSetIntro && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/70 backdrop-blur-3xl px-4" style={fontStyle}>
           <div className="text-center">
@@ -1564,7 +1359,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* ── UNSOLD MODAL (UNCHANGED) ── */}
+      {/* ── UNSOLD MODAL ── */}
       {showUnsoldModal && (
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/20 backdrop-blur-md px-4 pb-4 sm:pb-0" style={fontStyle} onClick={(e) => { if (e.target === e.currentTarget) setShowUnsoldModal(false); }}>
           <div className={`${glass} w-full max-w-md rounded-[28px] overflow-hidden flex flex-col`} style={{ maxHeight: '75vh' }}>
@@ -1588,7 +1383,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* ── TEAMS MODAL (UNCHANGED) ── */}
+      {/* ── TEAMS MODAL ── */}
       {showTeamsModal && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/20 backdrop-blur-md px-4 pb-4 sm:pb-0" style={fontStyle} onClick={(e) => { if (e.target === e.currentTarget) setShowTeamsModal(false); }}>
           <div className={`${glass} w-full max-w-md rounded-[28px] overflow-hidden flex flex-col`} style={{ maxHeight: '75vh' }}>
@@ -1640,7 +1435,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* ── REQUIREMENTS MODAL (UNCHANGED) ── */}
+      {/* ── REQUIREMENTS MODAL ── */}
       {showReq && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/20 backdrop-blur-md px-4 pb-4 sm:pb-0" style={fontStyle} onClick={(e) => { if (e.target === e.currentTarget) setShowReq(false); }}>
           <div className={`${glass} w-full max-w-sm rounded-[28px] overflow-hidden`}>
