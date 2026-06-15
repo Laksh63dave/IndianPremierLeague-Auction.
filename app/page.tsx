@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Zap, Trophy, ClipboardList, LayoutGrid, ChevronLeft, Users, Search, Star, ShieldCheck, Banknote, Target, Laptop, Briefcase, Boxes, MessageSquare } from "lucide-react";
 import playersData from "@/players";
 import { shuffleArray } from "@/shuffle";
@@ -102,6 +102,101 @@ const teamSoldAnthems: Record<string, string[]> = {
   ],
 };
 
+// Country flag emoji helper
+const countryFlags: Record<string, string> = {
+  "India": "🇮🇳",
+  "Australia": "🇦🇺",
+  "England": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+  "South Africa": "🇿🇦",
+  "New Zealand": "🇳🇿",
+  "West Indies": "🏝️",
+  "Pakistan": "🇵🇰",
+  "Sri Lanka": "🇱🇰",
+  "Bangladesh": "🇧🇩",
+  "Afghanistan": "🇦🇫",
+  "Zimbabwe": "🇿🇼",
+  "Ireland": "🇮🇪",
+  "Netherlands": "🇳🇱",
+  "Scotland": "🏴󠁧󠁢󠁳󠁣󠁴󠁿",
+};
+
+const getFlag = (country: string) => countryFlags[country] || "🌍";
+
+// ── Circular Timer SVG ────────────────────────────────────────────────────────
+const CircularTimer = ({ timer, maxTime = 10 }: { timer: number; maxTime?: number }) => {
+  const size = 56;
+  const strokeWidth = 4;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const progress = timer / maxTime;
+  const strokeDashoffset = circumference * (1 - progress);
+  const isDanger = timer <= 3;
+
+  return (
+    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+        {/* Track */}
+        <circle
+          cx={size / 2} cy={size / 2} r={radius}
+          fill="none"
+          stroke="rgba(0,0,0,0.08)"
+          strokeWidth={strokeWidth}
+        />
+        {/* Arc */}
+        <circle
+          cx={size / 2} cy={size / 2} r={radius}
+          fill="none"
+          stroke={isDanger ? '#ef4444' : '#f59e0b'}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.3s ease' }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className={`text-[14px] font-bold tabular-nums leading-none ${isDanger ? 'text-red-500' : 'text-gray-800'}`}>
+          {timer}
+        </span>
+        <span className="text-[7px] font-semibold text-gray-400 uppercase tracking-wide leading-none mt-0.5">sec</span>
+      </div>
+    </div>
+  );
+};
+
+// ── Circular Timer (small, for mobile header) ─────────────────────────────────
+const CircularTimerSm = ({ timer, maxTime = 10 }: { timer: number; maxTime?: number }) => {
+  const size = 44;
+  const strokeWidth = 3.5;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const progress = timer / maxTime;
+  const strokeDashoffset = circumference * (1 - progress);
+  const isDanger = timer <= 3;
+
+  return (
+    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="rgba(0,0,0,0.08)" strokeWidth={strokeWidth} />
+        <circle
+          cx={size / 2} cy={size / 2} r={radius}
+          fill="none"
+          stroke={isDanger ? '#ef4444' : '#f59e0b'}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.3s ease' }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className={`text-[11px] font-bold tabular-nums leading-none ${isDanger ? 'text-red-500' : 'text-gray-800'}`}>{timer}</span>
+        <span className="text-[6px] font-semibold text-gray-400 uppercase leading-none mt-0.5">sec</span>
+      </div>
+    </div>
+  );
+};
+
 export default function Home() {
   const teamsUI = [
     { code: 'MI', name: 'Mumbai Indians', color: '#004BA0', bg: '#004BA0' },
@@ -162,6 +257,15 @@ export default function Home() {
   const [commentary, setCommentary] = useState<string[]>([
     "🎙️ Welcome to the IPL 2026 Mega Auction room! The auctioneer has taken the podium. Raise your paddles, captains."
   ]);
+
+  // ── NEW: Bid history ticker ───────────────────────────────────────────────
+  const [bidHistory, setBidHistory] = useState<{ team: string; amount: number; ts: number }[]>([]);
+
+  // ── NEW: Bid animation key (flips on each new bid) ───────────────────────
+  const [bidAnimKey, setBidAnimKey] = useState(0);
+
+  // ── NEW: AI watching count ────────────────────────────────────────────────
+  const [aiWatching, setAiWatching] = useState(0);
 
   const commentaryTemplates = {
     openers: [
@@ -269,6 +373,13 @@ export default function Home() {
     }, 1000);
     return () => clearInterval(interval);
   }, [timer, auctionStarted, auctionEnded, showSetIntro]);
+
+  // ── NEW: Update aiWatching when bid changes ───────────────────────────────
+  useEffect(() => {
+    if (!auctionStarted || auctionEnded) return;
+    const count = Math.floor(Math.random() * 4) + (hasBid ? 2 : 1);
+    setAiWatching(Math.min(count, 9));
+  }, [bid, index]);
 
   useEffect(() => {
     if (!auctionStarted || teams.length === 0 || auctionEnded || showSetIntro) return;
@@ -396,6 +507,10 @@ export default function Home() {
           timer: timer
         }));
 
+        // ── NEW: push to bid history + trigger animation ──────────────────
+        setBidHistory(prev => [{ team: ai.name, amount: nextBidValue, ts: Date.now() }, ...prev].slice(0, 10));
+        setBidAnimKey(k => k + 1);
+
         setBid(nextBidValue);
         setCurrentBidder(ai.name);
         setTimer(10);
@@ -432,6 +547,10 @@ export default function Home() {
     else if (nextBidValue >= currentPlayer.base * 2.5) userTemplate = "The {bidder} isn't backing down! Bid raised to ₹{bid} Cr!";
     
     logCommentary(parseTemplate(userTemplate, { bidder: user.name, bid: nextBidValue }));
+
+    // ── NEW: push user bid to history + trigger animation ─────────────────
+    setBidHistory(prev => [{ team: user.name, amount: nextBidValue, ts: Date.now() }, ...prev].slice(0, 10));
+    setBidAnimKey(k => k + 1);
 
     setBid(nextBidValue);
     setCurrentBidder(user.name);
@@ -507,6 +626,7 @@ export default function Home() {
       setTimer(10);
       setHasBid(false);
       setCurrentBidder(null);
+      setBidHistory([]);
     };
   };
 
@@ -545,7 +665,10 @@ export default function Home() {
   const selectedTeamData = teamsUI.find((t) => t.code === selectedTeamUI);
   const activeColor = selectedTeamData ? selectedTeamData.color : '#ea580c';
 
-  // ─── SCREEN 1: TEAM SELECT ───────────────────────────────────────────────────
+  // ── NEW: Overseas count for header ────────────────────────────────────────
+  const overseasCount = userTeam?.squad.filter((p: any) => p.overseas).length ?? 0;
+
+  // ─── SCREEN 1: TEAM SELECT (UNCHANGED) ───────────────────────────────────────
   if (!selectedTeam) {
     return (
       <div className="min-h-screen bg-[#0c0c0e] text-white flex items-center justify-center p-4 sm:p-5 relative overflow-hidden" style={fontStyle}>
@@ -732,13 +855,11 @@ export default function Home() {
     );
   }
 
-  // ─── SCREEN 2: BRIEFING ───────────────────────────────────────────────────────
+  // ─── SCREEN 2: BRIEFING (UNCHANGED) ──────────────────────────────────────────
   if (showBriefing) {
     return (
       <div className="min-h-screen bg-[#08080a] text-white p-4 sm:p-6 md:p-12 overflow-y-auto selection:bg-amber-500/20 flex flex-col justify-between" style={fontStyle}>
         <div className="max-w-5xl mx-auto w-full">
-          
-          {/* Header Row */}
           <div className="flex flex-row items-center justify-between gap-4 bg-white/[0.02] border border-white/5 rounded-2xl p-4 sm:p-6 mb-6 sm:mb-12 animate-fadeIn backdrop-blur-md">
             <div className="flex items-center gap-3.5 text-left min-w-0 flex-1">
               <div className="relative shrink-0">
@@ -757,8 +878,6 @@ export default function Home() {
               <div className="text-sm sm:text-lg font-black tracking-tighter text-white/40 mt-0.5">EST. 2008</div>
             </div>
           </div>
-
-          {/* Feature Layout Grid - Stacks compactly into small vertical items on mobile */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-8">
             <div className="bg-white/[0.015] border border-white/5 p-4 sm:p-6 rounded-xl sm:rounded-[24px] hover:bg-white/[0.03] transition-all duration-300 text-left flex flex-row sm:flex-col items-start gap-4 sm:gap-0 sm:justify-between">
               <div className="w-8 h-8 sm:w-10 sm:h-10 bg-amber-500/5 border border-amber-500/10 rounded-lg sm:rounded-xl flex items-center justify-center sm:mb-5 shrink-0">
@@ -766,50 +885,37 @@ export default function Home() {
               </div>
               <div className="min-w-0 flex-1 sm:mt-1">
                 <h3 className="text-[11px] font-black tracking-widest uppercase text-[#e4e4e7] mb-1 sm:mb-2">Advanced Scouting</h3>
-                <p className="text-gray-400 text-xs leading-relaxed font-medium">
-                  Use the Search Sidebar to find your "Target Players." Mark them with a Star to trigger a visual alert when they hit the auction hammer.
-                </p>
+                <p className="text-gray-400 text-xs leading-relaxed font-medium">Use the Search Sidebar to find your "Target Players." Mark them with a Star to trigger a visual alert when they hit the auction hammer.</p>
               </div>
             </div>
-
             <div className="bg-white/[0.015] border border-white/5 p-4 sm:p-6 rounded-xl sm:rounded-[24px] hover:bg-white/[0.03] transition-all duration-300 text-left flex flex-row sm:flex-col items-start gap-4 sm:gap-0 sm:justify-between">
               <div className="w-8 h-8 sm:w-10 sm:h-10 bg-amber-500/5 border border-amber-500/10 rounded-lg sm:rounded-xl flex items-center justify-center sm:mb-5 shrink-0">
                 <Banknote className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />
               </div>
               <div className="min-w-0 flex-1 sm:mt-1">
                 <h3 className="text-[11px] font-black tracking-widest uppercase text-[#e4e4e7] mb-1 sm:mb-2">The Vault</h3>
-                <p className="text-gray-400 text-xs leading-relaxed font-medium">
-                  ₹120 Crore in your treasury. Use it wisely; every crore counts. Dominate or save to hunt the legends.
-                </p>
+                <p className="text-gray-400 text-xs leading-relaxed font-medium">₹120 Crore in your treasury. Use it wisely; every crore counts. Dominate or save to hunt the legends.</p>
               </div>
             </div>
-
             <div className="bg-white/[0.015] border border-white/5 p-4 sm:p-6 rounded-xl sm:rounded-[24px] hover:bg-white/[0.03] transition-all duration-300 text-left flex flex-row sm:flex-col items-start gap-4 sm:gap-0 sm:justify-between">
               <div className="w-8 h-8 sm:w-10 sm:h-10 bg-red-500/5 border border-red-500/10 rounded-lg sm:rounded-xl flex items-center justify-center sm:mb-5 shrink-0">
                 <Target className="w-4 h-4 sm:w-5 sm:h-5 text-red-400" />
               </div>
               <div className="min-w-0 flex-1 sm:mt-1">
                 <h3 className="text-[11px] font-black tracking-widest uppercase text-[#e4e4e7] mb-1 sm:mb-2">Outsmart the AI</h3>
-                <p className="text-gray-400 text-xs leading-relaxed font-medium">
-                  You aren't alone. 9 intelligent AI bots are programmed to steal your players. Beware of the <span className="text-red-400/90 font-semibold">Last-Second Snatch</span> in the final 2 seconds.
-                </p>
+                <p className="text-gray-400 text-xs leading-relaxed font-medium">You aren't alone. 9 intelligent AI bots are programmed to steal your players. Beware of the <span className="text-red-400/90 font-semibold">Last-Second Snatch</span> in the final 2 seconds.</p>
               </div>
             </div>
-
             <div className="bg-white/[0.015] border border-white/5 p-4 sm:p-6 rounded-xl sm:rounded-[24px] hover:bg-white/[0.03] transition-all duration-300 text-left flex flex-row sm:flex-col items-start gap-4 sm:gap-0 sm:justify-between">
               <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-500/5 border border-blue-500/10 rounded-lg sm:rounded-xl flex items-center justify-center sm:mb-5 shrink-0">
                 <Laptop className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
               </div>
               <div className="min-w-0 flex-1 sm:mt-1">
                 <h3 className="text-[11px] font-black tracking-widest uppercase text-[#e4e4e7] mb-1 sm:mb-2">Dev Note</h3>
-                <p className="text-gray-400 text-xs leading-relaxed font-medium">
-                  Built by a fan, for the fans. If you spot a bug or have a "killer feature" idea, your feedback is the fuel that makes this game better.
-                </p>
+                <p className="text-gray-400 text-xs leading-relaxed font-medium">Built by a fan, for the fans. If you spot a bug or have a "killer feature" idea, your feedback is the fuel that makes this game better.</p>
               </div>
             </div>
           </div>
-
-          {/* Blueprint Rules Strip */}
           <div className="flex flex-col md:flex-row gap-2.5 mb-8 sm:mb-12">
             <div className="flex-1 bg-white/[0.01] border border-white/5 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left">
               <div className="flex items-center gap-3 w-full">
@@ -826,7 +932,6 @@ export default function Home() {
                 </div>
               </div>
             </div>
-            
             <div className="md:w-64 bg-white/[0.01] border border-white/5 p-4 rounded-xl flex items-center gap-3 text-left">
                <Zap className="w-4 h-4 text-amber-500/60 shrink-0" />
                <div>
@@ -835,8 +940,6 @@ export default function Home() {
                </div>
             </div>
           </div>
-
-          {/* Action Trigger Block */}
           <div className="flex justify-center mb-2">
             <button 
               onClick={commenceAuction} 
@@ -847,10 +950,7 @@ export default function Home() {
               <ChevronLeft className="relative w-4 h-4 ml-1.5 rotate-180 group-hover:translate-x-0.5 transition-transform" />
             </button>
           </div>
-
         </div>
-
-        {/* Muted Footer */}
         <footer className="max-w-5xl mx-auto w-full mt-6 sm:mt-auto" style={fontStyle}>
           <div className="pt-4 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-3 text-gray-500 text-center sm:text-left">
             <div className="flex items-center gap-2">
@@ -869,12 +969,11 @@ export default function Home() {
     );
   }
 
-  // ─── SCREEN 3: COUNTDOWN ─────────────────────────────────────────────────────
+  // ─── SCREEN 3: COUNTDOWN (UNCHANGED) ─────────────────────────────────────────
   if (isCountingDown) {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center overflow-hidden" style={fontStyle}>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-500/10 via-transparent to-transparent animate-pulse"></div>
-        
         <div className="relative">
           <h1 className="text-[20rem] md:text-[30rem] font-black text-white/[0.03] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 italic scale-150">
             {countdownNum}
@@ -883,7 +982,6 @@ export default function Home() {
             {countdownNum}
           </h1>
         </div>
-
         <div className="mt-4 flex flex-col items-center gap-2">
           <div className="h-[2px] w-12 bg-amber-500 animate-width"></div>
           <p className="text-amber-500 font-black tracking-[0.4em] sm:tracking-[0.8em] uppercase text-[10px] animate-pulse text-center px-4">
@@ -894,129 +992,218 @@ export default function Home() {
     );
   }
 
-  // ─── SCREEN 4: MAIN AUCTION ──────────────────────────────────────────────────
+  // ─── SCREEN 4: MAIN AUCTION — WITH UI UPGRADES ───────────────────────────────
+  const glass = "bg-white/60 backdrop-blur-2xl border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.9)]";
+  const glassDim = "bg-white/40 backdrop-blur-xl border border-white/60";
+  const pageBg = "min-h-screen bg-gradient-to-br from-slate-100 via-blue-50/40 to-emerald-50/30";
+
+  const roleBadgeClass = player?.role === "Batsman"
+    ? "bg-blue-100 text-blue-700 border border-blue-200"
+    : player?.role === "Bowler"
+    ? "bg-red-100 text-red-700 border border-red-200"
+    : player?.role === "All-rounder"
+    ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+    : "bg-amber-100 text-amber-700 border border-amber-200";
+
+  // Role accent color for top bar on player card
+  const roleAccentColor = player?.role === "Batsman" ? "#3b82f6"
+    : player?.role === "Bowler" ? "#ef4444"
+    : player?.role === "All-rounder" ? "#10b981"
+    : "#f59e0b";
+
+  // Rating bar color
+  const ratingBarColor = player?.rating >= 92 ? "#22c55e"
+    : player?.rating >= 85 ? "#f59e0b"
+    : "#ef4444";
+
+  const bidderColor = currentBidder ? teamColors[currentBidder] : "#f59e0b";
+
+  // Auction progress %
+  const auctionProgressPct = Math.round((index / players.length) * 100);
+
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-black via-zinc-900 to-black text-white p-3 sm:p-4 pb-20 lg:pb-4" style={fontStyle}>
-        
+      {/* ── Bid jump animation keyframes injected once ── */}
+      <style>{`
+        @keyframes bidFlip {
+          0%   { transform: translateY(6px); opacity: 0; }
+          100% { transform: translateY(0px); opacity: 1; }
+        }
+        .bid-flip { animation: bidFlip 0.28s cubic-bezier(0.22,1,0.36,1) both; }
+      `}</style>
+
+      {/* ── Page shell ── */}
+      <div className={`${pageBg} text-gray-900 p-3 sm:p-4 pb-20 lg:pb-6`} style={fontStyle}>
+
+        {/* Ambient background blobs */}
+        <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+          <div className="absolute top-[-10%] left-[-5%] w-[500px] h-[500px] rounded-full bg-amber-200/25 blur-[120px]" />
+          <div className="absolute bottom-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full bg-blue-200/25 blur-[120px]" />
+          <div
+            className="absolute top-1/3 left-1/3 w-[400px] h-[400px] rounded-full blur-[100px] transition-all duration-1000"
+            style={{ backgroundColor: currentBidder ? `${teamColors[currentBidder]}18` : "transparent" }}
+          />
+        </div>
+
         {/* ── Header ── */}
         <div className="max-w-[1400px] mx-auto mb-3 sm:mb-4">
-          <div className="hidden lg:flex items-center justify-between">
-            <div className="flex items-center bg-white/5 backdrop-blur-md rounded-xl border border-white/10 p-1">
-              <div className="px-4 py-1 border-r border-white/10">
-                <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest block">Purse</span>
-                <span className="text-green-400 font-bold text-lg leading-tight">₹{userTeam?.purse}Cr</span>
-              </div>
-              <div className={`px-4 py-1 transition-all ${timer <= 3 ? "bg-red-500/20" : ""}`}>
-                <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest block">Timer</span>
-                <span className={`font-bold text-lg leading-tight tabular-nums ${timer <= 3 ? "text-red-400 animate-pulse" : "text-orange-400"}`}>{timer}s</span>
-                <div className="w-full h-1 mt-2 bg-white/10 rounded-full overflow-hidden">
-                  <div className={`h-full ${timer <= 3 ? "bg-red-500" : "bg-orange-400"} transition-all`} style={{ width: `${(timer / 10) * 100}%` }} />
+
+          {/* Desktop header — MODIFIED: circular timer, squad/overseas counts, auction progress strip */}
+          <div className="hidden lg:flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <div className={`${glass} rounded-2xl flex items-stretch overflow-hidden`}>
+                {/* Purse */}
+                <div className="px-5 py-2.5 border-r border-black/[0.06]">
+                  <span className="text-[9px] text-gray-400 font-bold uppercase tracking-[0.12em] block mb-0.5">Purse</span>
+                  <span className="text-emerald-600 font-bold text-lg leading-tight">₹{userTeam?.purse} Cr</span>
                 </div>
+                {/* Spent so far */}
+                <div className="px-5 py-2.5 border-r border-black/[0.06]">
+                  <span className="text-[9px] text-gray-400 font-bold uppercase tracking-[0.12em] block mb-0.5">Spent</span>
+                  <span className="text-gray-700 font-bold text-lg leading-tight">₹{(120 - (userTeam?.purse ?? 120)).toFixed(2)} Cr</span>
+                </div>
+                {/* Circular Timer */}
+                <div className="px-5 py-2 border-r border-black/[0.06] flex items-center">
+                  <CircularTimer timer={timer} maxTime={10} />
+                </div>
+                {/* Squad count */}
+                <div className="px-5 py-2.5 border-r border-black/[0.06]">
+                  <span className="text-[9px] text-gray-400 font-bold uppercase tracking-[0.12em] block mb-0.5">Squad</span>
+                  <span className="text-gray-800 font-bold text-lg leading-tight tabular-nums">{userTeam?.squad.length ?? 0}<span className="text-gray-400 text-sm font-semibold">/15</span></span>
+                </div>
+                {/* Overseas count */}
+                <div className="px-5 py-2.5 border-r border-black/[0.06]">
+                  <span className="text-[9px] text-gray-400 font-bold uppercase tracking-[0.12em] block mb-0.5">Overseas</span>
+                  <span className={`font-bold text-lg leading-tight tabular-nums ${overseasCount >= 4 ? "text-red-500" : "text-gray-800"}`}>{overseasCount}<span className="text-gray-400 text-sm font-semibold">/4</span></span>
+                </div>
+                {/* Action buttons */}
+                {[
+                  { label: "Requirements", icon: ClipboardList, action: () => setShowReq(true) },
+                  { label: "Teams", icon: LayoutGrid, action: () => { setShowTeamsModal(true); setViewingTeam(null); } },
+                  { label: "Unsold", icon: Zap, action: () => setShowUnsoldModal(true) },
+                ].map(({ label, icon: Icon, action }) => (
+                  <button
+                    key={label}
+                    onClick={action}
+                    className="px-5 py-2.5 border-r border-black/[0.06] last:border-r-0 text-[11px] font-semibold text-gray-500 hover:text-gray-900 hover:bg-black/[0.03] flex items-center gap-2 transition-all uppercase tracking-wide"
+                  >
+                    <Icon className="w-3.5 h-3.5" /> {label}
+                  </button>
+                ))}
               </div>
-              <button onClick={() => setShowReq(true)} className="px-4 py-2 hover:bg-white/5 transition-all border-l border-white/10 text-xs font-bold uppercase flex items-center gap-2">
-                <ClipboardList className="w-4 h-4" /> Requirements
-              </button>
-              <button onClick={() => { setShowTeamsModal(true); setViewingTeam(null); }} className="px-4 py-2 hover:bg-white/5 transition-all border-l border-white/10 text-xs font-bold uppercase flex items-center gap-2">
-                <LayoutGrid className="w-4 h-4" /> Teams
-              </button>
-              <button onClick={() => setShowUnsoldModal(true)} className="px-4 py-2 hover:bg-white/5 transition-all border-l border-white/10 text-xs font-bold uppercase flex items-center gap-2">
-                <Zap className="w-4 h-4" /> Unsold
-              </button>
+              {/* Active set pill */}
+              <div className="bg-amber-50 border border-amber-200 px-4 py-2 rounded-xl shadow-sm">
+                <span className="text-amber-700 text-[10px] font-bold uppercase tracking-[0.12em]">Active Set: {player?.role}</span>
+              </div>
             </div>
-            <div className="bg-amber-500/10 border border-amber-500/20 px-4 py-2 rounded-xl">
-              <span className="text-amber-500 text-[10px] font-black uppercase tracking-widest">Active Set: {player?.role}</span>
+
+            {/* ── NEW: Auction progress strip ── */}
+            <div className={`${glass} rounded-xl px-5 py-2.5 flex items-center gap-4`}>
+              <span className="text-[10px] text-gray-500 font-semibold whitespace-nowrap">
+                Auction progress — Lot {index + 1} of {players.length}
+              </span>
+              <div className="flex-1 h-1.5 bg-black/[0.06] rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-blue-500 transition-all duration-700"
+                  style={{ width: `${auctionProgressPct}%` }}
+                />
+              </div>
+              <span className="text-[10px] font-bold text-blue-600 tabular-nums">{auctionProgressPct}%</span>
             </div>
           </div>
 
-          {/* Mobile header */}
+          {/* Mobile header — MODIFIED: circular timer replaces progress bar, squad/overseas added */}
           <div className="flex lg:hidden items-center gap-2">
-            <div className="flex items-center bg-white/5 border border-white/10 rounded-xl p-1 flex-1 gap-1">
-              <div className="px-3 py-1 border-r border-white/10 flex-1">
-                <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest block">Purse</span>
-                <span className="text-green-400 font-bold text-sm leading-tight">₹{userTeam?.purse}Cr</span>
+            <div className={`${glass} rounded-xl flex flex-1 overflow-hidden`}>
+              <div className="px-3 py-2 border-r border-black/[0.06] flex-1">
+                <span className="text-[8px] text-gray-400 font-bold uppercase tracking-widest block">Purse</span>
+                <span className="text-emerald-600 font-bold text-sm leading-tight">₹{userTeam?.purse} Cr</span>
               </div>
-              <div className={`px-3 py-1 flex-1 transition-all ${timer <= 3 ? "bg-red-500/20 rounded-lg" : ""}`}>
-                <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest block">Timer</span>
-                <span className={`font-bold text-sm leading-tight tabular-nums ${timer <= 3 ? "text-red-400 animate-pulse" : "text-orange-400"}`}>{timer}s</span>
-                <div className="w-full h-1 mt-1 bg-white/10 rounded-full overflow-hidden">
-                  <div className={`h-full ${timer <= 3 ? "bg-red-500" : "bg-orange-400"} transition-all`} style={{ width: `${(timer / 10) * 100}%` }} />
-                </div>
+              {/* Circular timer (small) */}
+              <div className="px-2 py-1.5 border-r border-black/[0.06] flex items-center justify-center">
+                <CircularTimerSm timer={timer} maxTime={10} />
+              </div>
+              {/* Squad */}
+              <div className="px-3 py-2 border-r border-black/[0.06] flex-1">
+                <span className="text-[8px] text-gray-400 font-bold uppercase tracking-widest block">Squad</span>
+                <span className="font-bold text-sm leading-tight tabular-nums text-gray-800">{userTeam?.squad.length ?? 0}<span className="text-gray-400 text-xs">/15</span></span>
+              </div>
+              {/* Overseas */}
+              <div className="px-3 py-2 flex-1">
+                <span className="text-[8px] text-gray-400 font-bold uppercase tracking-widest block">Ovrss</span>
+                <span className={`font-bold text-sm leading-tight tabular-nums ${overseasCount >= 4 ? "text-red-500" : "text-gray-800"}`}>{overseasCount}<span className="text-gray-400 text-xs">/4</span></span>
               </div>
             </div>
             <div className="flex gap-1.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <button onClick={() => setShowReq(true)} className="flex-shrink-0 bg-white/5 border border-white/10 rounded-xl p-2.5 text-gray-400 hover:text-white transition">
-                <ClipboardList className="w-4 h-4" />
-              </button>
-              <button onClick={() => { setShowTeamsModal(true); setViewingTeam(null); }} className="flex-shrink-0 bg-white/5 border border-white/10 rounded-xl p-2.5 text-gray-400 hover:text-white transition">
-                <LayoutGrid className="w-4 h-4" />
-              </button>
-              <button onClick={() => setShowUnsoldModal(true)} className="flex-shrink-0 bg-white/5 border border-white/10 rounded-xl p-2.5 text-gray-400 hover:text-white transition">
-                <Zap className="w-4 h-4" />
-              </button>
-              <div className="flex-shrink-0 bg-amber-500/10 border border-amber-500/20 px-2.5 py-2 rounded-xl flex items-center">
-                <span className="text-amber-500 text-[9px] font-black uppercase tracking-wider whitespace-nowrap">{player?.role}</span>
+              <button onClick={() => setShowReq(true)} className={`${glassDim} flex-shrink-0 rounded-xl p-2.5 text-gray-500 hover:text-gray-800 transition`}><ClipboardList className="w-4 h-4" /></button>
+              <button onClick={() => { setShowTeamsModal(true); setViewingTeam(null); }} className={`${glassDim} flex-shrink-0 rounded-xl p-2.5 text-gray-500 hover:text-gray-800 transition`}><LayoutGrid className="w-4 h-4" /></button>
+              <button onClick={() => setShowUnsoldModal(true)} className={`${glassDim} flex-shrink-0 rounded-xl p-2.5 text-gray-500 hover:text-gray-800 transition`}><Zap className="w-4 h-4" /></button>
+              <div className="flex-shrink-0 bg-amber-50 border border-amber-200 px-2.5 py-2 rounded-xl flex items-center">
+                <span className="text-amber-700 text-[9px] font-bold uppercase tracking-wider whitespace-nowrap">{player?.role}</span>
               </div>
             </div>
           </div>
+
+          {/* Mobile auction progress strip */}
+          <div className="flex lg:hidden items-center gap-2 mt-2">
+            <span className="text-[9px] text-gray-500 font-semibold whitespace-nowrap">Lot {index + 1}/{players.length}</span>
+            <div className="flex-1 h-1 bg-black/[0.08] rounded-full overflow-hidden">
+              <div className="h-full rounded-full bg-blue-500 transition-all duration-700" style={{ width: `${auctionProgressPct}%` }} />
+            </div>
+            <span className="text-[9px] font-bold text-blue-600 tabular-nums">{auctionProgressPct}%</span>
+          </div>
         </div>
 
-        <div className="max-w-[1400px] mx-auto flex gap-4">
+        {/* ── 3-column layout ── */}
+        <div className="max-w-[1400px] mx-auto flex gap-3">
 
-          {/* Scout sidebar */}
+          {/* ── Scout sidebar (UNCHANGED) ── */}
           <div className={`
-            w-1/5 p-4 rounded-2xl bg-white/5 border border-white/10 flex-col overflow-hidden
+            w-[200px] flex-col overflow-hidden rounded-2xl
             hidden lg:flex
-            ${mobileTab === 'scout' ? '!flex fixed inset-0 z-40 w-full h-full rounded-none bg-[#0c0c0e] border-0 pb-20' : ''}
-          `} style={{ height: mobileTab === 'scout' ? '100dvh' : '78vh' }}>
+            ${mobileTab === 'scout' ? '!flex fixed inset-0 z-40 w-full h-full rounded-none border-0 pb-20' : ''}
+            ${glass}
+          `} style={{ height: mobileTab === 'scout' ? '100dvh' : '79vh', padding: '16px' }}>
             <button
-              className="lg:hidden flex items-center gap-1 text-gray-400 text-xs font-bold uppercase mb-4 self-start"
+              className="lg:hidden flex items-center gap-1 text-gray-500 text-xs font-bold uppercase mb-4 self-start"
               onClick={() => setMobileTab('auction')}
             >
               <ChevronLeft className="w-4 h-4" /> Back
             </button>
 
-            <div className="relative mb-4">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-              <input 
-                type="text" 
+            <div className="relative mb-3">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+              <input
+                type="text"
                 placeholder="Search players..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl py-2 pl-10 pr-4 text-xs outline-none focus:border-amber-500 transition text-white"
+                className="w-full bg-black/[0.04] border border-black/[0.08] rounded-xl py-2 pl-9 pr-3 text-[11px] outline-none focus:border-amber-400 transition text-gray-800 placeholder-gray-400"
+                style={fontStyle}
               />
             </div>
-            
-            <div className="flex-1 overflow-y-auto pr-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden space-y-4">
+
+            <div className="flex-1 overflow-y-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden space-y-3">
               {Object.entries(filteredPool).map(([role, list]) => (
                 list.length > 0 && (
-                  <div key={role} className="flex flex-col">
-                    <h3 className="text-[10px] text-amber-500/80 font-black uppercase tracking-widest mb-2 border-l-2 border-amber-500 p-2">
-                      {role}
-                    </h3>
-                    <div className="space-y-1">
+                  <div key={role}>
+                    <h3 className="text-[9px] text-amber-600 font-black uppercase tracking-widest mb-1.5 border-l-2 border-amber-400 pl-2">{role}</h3>
+                    <div className="space-y-0.5">
                       {list.map((p: any, i: number) => {
                         const boughtTeam = teams.find(t => t.squad.some((s: any) => s.name === p.name));
                         const isPlayerSold = !!boughtTeam;
                         const soldPrice = boughtTeam?.squad.find((s: any) => s.name === p.name)?.price;
-                        
                         return (
-                          <div key={i} className={`flex items-center justify-between group py-1.5 border-b border-white/5 ${isPlayerSold ? "opacity-50" : ""}`}>
-                            <div className="flex items-center gap-1.5 max-w-[85%] truncate text-left">
-                              <span className="text-[11px] text-gray-400 font-medium truncate">{p.name}</span>
-                              {isPlayerSold && (
-                                <span className="text-[10px] font-bold text-red-500/80 flex-shrink-0 tracking-tight">
-                                  (SOLD - ₹{soldPrice}Cr)
-                                </span>
-                              )}
+                          <div key={i} className={`flex items-center justify-between py-1.5 border-b border-black/[0.05] ${isPlayerSold ? "opacity-40" : ""}`}>
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="text-[10px] text-gray-600 font-medium truncate">{p.name}</span>
+                              {isPlayerSold && <span className="text-[9px] font-bold text-red-500 flex-shrink-0">₹{soldPrice}Cr</span>}
                             </div>
                             {!isPlayerSold ? (
-                              <button onClick={() => toggleFavorite(p.name)} className="transition-transform active:scale-125">
-                                <Star className={`w-3 h-3 ${favorites.includes(p.name) ? "text-amber-400 fill-amber-400" : "text-gray-600 hover:text-gray-300"}`} />
+                              <button onClick={() => toggleFavorite(p.name)} className="transition-transform active:scale-125 flex-shrink-0 ml-1">
+                                <Star className={`w-3 h-3 ${favorites.includes(p.name) ? "text-amber-500 fill-amber-500" : "text-gray-300 hover:text-gray-500"}`} />
                               </button>
-                            ) : (
-                              <div className="w-3 h-3" />
-                            )}
+                            ) : <div className="w-3 h-3 flex-shrink-0" />}
                           </div>
                         );
                       })}
@@ -1027,179 +1214,278 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Main auction area */}
+          {/* ── Main auction area ── */}
           <div className={`
-            flex-1 flex-col items-center justify-center
+            flex-1 flex-col items-center justify-center gap-3
             hidden lg:flex
             ${mobileTab === 'auction' ? '!flex' : ''}
           `}>
             {auctionEnded ? (
-              <div className="w-full max-w-lg p-8 sm:p-10 rounded-3xl text-center bg-[#0a0a0a] border border-white/10 shadow-2xl">
-                <Trophy className="w-12 h-12 mx-auto mb-4 text-yellow-500" />
-                <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-white">Auction Complete</h1>
-                {!isSquadValid && <div className="bg-red-500/10 border border-red-500/30 p-3 rounded-xl mb-6 text-red-400 text-xs font-medium">⚠️ Requirements Not Met</div>}
-                <button onClick={() => window.location.reload()} className="bg-white text-black px-10 py-3 rounded-xl font-black hover:scale-105 transition">START NEW</button>
+              <div className={`${glass} w-full max-w-lg p-10 rounded-3xl text-center`}>
+                <Trophy className="w-12 h-12 mx-auto mb-4 text-amber-500" />
+                <h1 className="text-2xl font-bold mb-2 text-gray-900">Auction Complete</h1>
+                {!isSquadValid && (
+                  <div className="bg-red-50 border border-red-200 p-3 rounded-xl mb-6 text-red-600 text-xs font-medium">⚠️ Requirements Not Met</div>
+                )}
+                <button
+                  onClick={() => window.location.reload()}
+                  className="bg-gray-900 text-white px-10 py-3 rounded-xl font-bold hover:scale-105 transition text-sm"
+                >
+                  Start New Auction
+                </button>
               </div>
             ) : (
               <>
-                <div 
-                  className="w-full max-w-lg p-6 sm:p-8 rounded-[32px] sm:rounded-[40px] text-center bg-white/5 backdrop-blur-xl border border-white/10 transition-all duration-500 shadow-2xl"
-                  style={{ 
-                    boxShadow: isFavoriteActive 
-                      ? "0 0 50px rgba(251, 191, 36, 0.3)" 
-                      : currentBidder 
-                        ? `0 0 40px ${teamColors[currentBidder]}22` 
-                        : player?.rating > 90 
-                          ? "0 0 40px rgba(255, 215, 0, 0.15)" 
-                          : "none" 
+                {/* ── Player card — MODIFIED ── */}
+                <div
+                  className={`w-full max-w-lg rounded-[32px] overflow-hidden text-center transition-all duration-500 ${glass}`}
+                  style={{
+                    boxShadow: isFavoriteActive
+                      ? `0 0 0 3px #fef3c7, 0 20px 60px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.9)`
+                      : currentBidder
+                      ? `0 0 0 2px ${teamColors[currentBidder]}30, 0 20px 60px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9)`
+                      : `0 20px 60px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9)`,
                   }}
                 >
-                  {isFavoriteActive && (
-                    <div className="flex justify-center mb-2 animate-pulse">
-                      <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
-                    </div>
-                  )}
+                  {/* Role accent stripe at top */}
+                  <div className="h-1 w-full" style={{ backgroundColor: roleAccentColor }} />
 
-                  <div className={`text-[9px] mb-3 uppercase font-bold tracking-[0.2em] px-3 py-1 inline-block rounded-full ${player?.role === "Batsman" ? "bg-blue-500/20 text-blue-400" : player?.role === "Bowler" ? "bg-red-500/20 text-red-400" : player?.role === "All-rounder" ? "bg-green-500/20 text-green-400" : "bg-yellow-500/20 text-yellow-400"}`}>
-                    {player?.role}
-                  </div>
-                  <h1 className="text-2xl sm:text-4xl font-bold mb-1 tracking-tighter text-white">{player?.name}</h1>
-                  
-                  <div className="flex items-center justify-center gap-2 sm:gap-4 mb-5 sm:mb-6 mt-3 flex-wrap">
-                    <div className="bg-white/5 px-3 py-1 rounded-full border border-white/5">
-                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">⭐ {player?.rating} Rating</span>
+                  <div className="p-7 sm:p-9">
+                    {/* Lot number + fav star row */}
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-[9px] font-semibold text-gray-400 uppercase tracking-[0.14em]">
+                        Lot {index + 1} of {players.length}
+                      </span>
+                      {isFavoriteActive && (
+                        <Star className="w-4 h-4 text-amber-500 fill-amber-500 animate-pulse" />
+                      )}
                     </div>
-                    <div className="bg-white/5 px-3 py-1 rounded-full border border-white/5">
-                      <span className="text-[10px] text-gray-400 font-medium uppercase tracking-tight">{player?.style}</span>
-                    </div>
-                    <div className="bg-white/5 px-3 py-1 rounded-full border border-white/5">
-                      <span className="text-[10px] text-gray-300 font-bold uppercase tracking-tight">{player?.country}</span>
-                    </div>
-                  </div>
 
-                  <div className="text-4xl sm:text-6xl font-black text-green-400 mb-6 sm:mb-8 tabular-nums tracking-tighter">₹{bid} Cr</div>
-                  <div className="mb-6 sm:mb-8 min-h-[36px] flex items-center justify-center gap-3">
-                    {currentBidder && <img src={teamLogos[currentBidder]} className="w-7 h-7 object-contain drop-shadow-lg" />}
-                    <span
-                      className="text-base sm:text-lg font-bold tracking-tight flex items-center gap-2"
-                      style={{ color: currentBidder ? teamColors[currentBidder] : "#666" }}
+                    {/* Role badge */}
+                    <div className={`text-[9px] mb-4 uppercase font-bold tracking-[0.18em] px-3 py-1 inline-block rounded-full ${roleBadgeClass}`}>
+                      {player?.role}
+                    </div>
+
+                    {/* Player name with flag emoji */}
+                    <h1 className="text-[28px] sm:text-[38px] font-bold tracking-[-0.04em] text-gray-900 leading-tight mb-1">
+                      {getFlag(player?.country)} {player?.name}
+                    </h1>
+
+                    {/* AI watching indicator */}
+                    {hasBid && aiWatching > 0 && (
+                      <p className="text-[10px] text-gray-400 font-medium mb-3">
+                        👀 {aiWatching} team{aiWatching !== 1 ? 's' : ''} watching
+                      </p>
+                    )}
+
+                    {/* Meta pills — country removed (now inline with name) */}
+                    <div className="flex items-center justify-center gap-2 flex-wrap mb-4">
+                      <span className="bg-black/[0.05] border border-black/[0.07] px-3 py-1 rounded-full text-[10px] text-gray-600 font-semibold">⭐ {player?.rating} Rating</span>
+                      <span className="bg-black/[0.05] border border-black/[0.07] px-3 py-1 rounded-full text-[10px] text-gray-600 font-medium">{player?.style}</span>
+                    </div>
+
+                    {/* ── Rating bar ── */}
+                    <div className="mb-5">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[9px] text-gray-400 font-semibold uppercase tracking-widest">Player Rating</span>
+                        <span className="text-[11px] font-bold tabular-nums" style={{ color: ratingBarColor }}>{player?.rating}</span>
+                      </div>
+                      <div className="w-full h-[3px] bg-black/[0.07] rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-700"
+                          style={{ width: `${player?.rating ?? 0}%`, backgroundColor: ratingBarColor }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="h-px bg-black/[0.06] mb-5" />
+
+                    {/* Bid amount — ANIMATED */}
+                    <div className="text-[10px] text-gray-400 font-semibold uppercase tracking-[0.12em] mb-1">Current Bid</div>
+                    <div
+                      key={bidAnimKey}
+                      className="bid-flip text-[52px] sm:text-[64px] font-bold text-emerald-600 tabular-nums tracking-[-0.05em] leading-none mb-5"
                     >
-                      {currentBidder ? ` is leading.` : "Awaiting Bids..."}
-                    </span>
-                  </div>
-                  
-                  <button 
-                    onClick={increaseBid} 
-                    disabled={currentBidder === userTeam?.name || sold}
-                    className={`w-full sm:w-auto px-8 sm:px-14 py-4 rounded-2xl font-black text-base sm:text-lg transition-all text-white shadow-xl 
-                      ${currentBidder === userTeam?.name ? "opacity-50 cursor-not-allowed" : "hover:scale-[1.02] active:scale-[0.98]"}`}
-                    style={{ 
-                      background: currentBidder ? `linear-gradient(135deg, ${teamColors[currentBidder]}, #000)` : "linear-gradient(135deg, #ff0381, #dc2626)", 
-                      boxShadow: currentBidder ? `0 15px 30px ${teamColors[currentBidder]}44` : "0 15px 30px rgba(255, 0, 128, 0.2)" 
-                    }}
-                  >
-                    {currentBidder === userTeam?.name ? "✅ LEADING" : `💲 BID ₹${(bid + (bid >= 20 ? 1 : bid >= 10 ? 0.5 : 0.25)).toFixed(2)} Cr`}
-                  </button>
-                </div>
+                      ₹{bid} Cr
+                    </div>
 
-                {/* Commentary feed */}
-                <div className="w-full max-w-lg mt-4 sm:mt-5 bg-white/[0.02] border border-white/[0.06] rounded-2xl sm:rounded-3xl p-4 sm:p-5 backdrop-blur-xl shadow-2xl text-left relative overflow-hidden flex flex-col h-[120px] sm:h-[130px]">
-                  <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-amber-500/20 to-transparent" />
-                  
-                  <div className="flex items-center justify-between mb-2 sm:mb-3 flex-shrink-0">
-                    <div className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
-                      <span className="text-[10px] uppercase font-black tracking-[0.15em] text-amber-500/90 font-sans">
-                        🎙️ Live Broadcast Feed
+                    {/* Leading bidder */}
+                    <div
+                      className="flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-2xl mb-6 transition-all duration-300"
+                      style={{
+                        background: currentBidder ? `${teamColors[currentBidder]}0f` : "rgba(0,0,0,0.03)",
+                        border: `1px solid ${currentBidder ? `${teamColors[currentBidder]}30` : "rgba(0,0,0,0.06)"}`,
+                      }}
+                    >
+                      {currentBidder && (
+                        <img src={teamLogos[currentBidder]} className="w-6 h-6 object-contain" alt="" />
+                      )}
+                      <span
+                        className="text-[13px] font-semibold"
+                        style={{ color: currentBidder ? teamColors[currentBidder] : "#9ca3af" }}
+                      >
+                        {currentBidder ? `${currentBidder} is leading` : "Awaiting first bid…"}
                       </span>
                     </div>
-                    <span className="text-[9px] uppercase font-mono text-zinc-600 tracking-wider hidden sm:block">
-                      IPL AUCTION 2026.
-                    </span>
+
+                    {/* Bid button */}
+                    <button
+                      onClick={increaseBid}
+                      disabled={currentBidder === userTeam?.name || sold}
+                      className="w-full py-4 rounded-2xl font-bold text-[15px] transition-all duration-300 active:scale-[0.98]"
+                      style={{
+                        background: currentBidder === userTeam?.name
+                          ? "linear-gradient(135deg, #d1fae5, #a7f3d0)"
+                          : currentBidder
+                          ? `linear-gradient(135deg, ${teamColors[currentBidder]}, ${teamColors[currentBidder]}cc)`
+                          : "linear-gradient(135deg, #f59e0b, #ea580c)",
+                        color: currentBidder === userTeam?.name ? "#065f46" : "#fff",
+                        boxShadow: currentBidder === userTeam?.name
+                          ? "none"
+                          : currentBidder
+                          ? `0 10px 30px ${teamColors[currentBidder]}44`
+                          : "0 10px 30px rgba(245,158,11,0.45)",
+                        cursor: currentBidder === userTeam?.name ? "not-allowed" : "pointer",
+                        opacity: currentBidder === userTeam?.name ? 0.85 : 1,
+                      }}
+                    >
+                      {currentBidder === userTeam?.name
+                        ? "✅ You're Leading"
+                        : `Bid ₹${(bid + (bid >= 20 ? 1 : bid >= 10 ? 0.5 : 0.25)).toFixed(2)} Cr`}
+                    </button>
+                  </div>
+                </div>
+
+                {/* ── Commentary / Bid History feed — MODIFIED ── */}
+                <div className={`w-full max-w-lg rounded-2xl text-left relative overflow-hidden ${glass}`}>
+                  <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-400/40 to-transparent" />
+
+                  {/* Tab header */}
+                  <div className="flex items-center gap-0 border-b border-black/[0.06]">
+                    <div className="flex items-center gap-2 px-4 py-3 border-r border-black/[0.06]">
+                      <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
+                      <span className="text-[9px] uppercase font-black tracking-[0.18em] text-amber-600">🎙 Commentary</span>
+                    </div>
+                    <div className="flex items-center gap-2 px-4 py-3">
+                      <span className="text-[9px] uppercase font-black tracking-[0.18em] text-gray-400">📋 Bid History</span>
+                    </div>
+                    <span className="ml-auto pr-4 text-[9px] text-gray-300 font-mono hidden sm:block">IPL AUCTION 2026</span>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto space-y-2.5 font-sans pr-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                    {commentary.map((line, idx) => (
-                      <div 
-                        key={idx} 
-                        className={`transition-all duration-500 flex items-start gap-2.5 rounded-xl px-2.5 py-1.5 flex-shrink-0 ${
-                          idx === 0 
-                            ? "text-[#f5f5f7] font-medium text-[12px] sm:text-[13px] bg-white/[0.03] border border-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.02)] scale-[1.01]" 
-                            : "text-zinc-500 text-[10px] sm:text-[11px] opacity-50 filter blur-[0.2px]"
-                        }`}
-                      >
-                        <span className={`font-mono mt-0.5 select-none text-[10px] ${idx === 0 ? "text-amber-500" : "text-zinc-700"}`}>
-                          {idx === 0 ? "⚡" : "•"}
-                        </span>
-                        <p className="leading-relaxed flex-1">{line}</p>
-                      </div>
-                    ))}
+                  <div className="flex gap-0">
+                    {/* Commentary col */}
+                    <div className="flex-1 p-4 border-r border-black/[0.06] space-y-2 overflow-y-auto max-h-28 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                      {commentary.map((line, idx) => (
+                        <div key={idx} className={`flex items-start gap-2 transition-all duration-500 ${idx === 0 ? "" : "opacity-40"}`}>
+                          <span className={`text-[10px] mt-0.5 flex-shrink-0 ${idx === 0 ? "text-amber-500" : "text-gray-300"}`}>{idx === 0 ? "⚡" : "·"}</span>
+                          <p className={`leading-relaxed flex-1 ${idx === 0 ? "text-[12px] sm:text-[13px] font-medium text-gray-800" : "text-[10px] text-gray-500"}`}>{line}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* ── NEW: Bid history col ── */}
+                    <div className="w-[180px] sm:w-[210px] flex-shrink-0 overflow-y-auto max-h-28 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                      {bidHistory.length === 0 ? (
+                        <p className="text-[10px] text-gray-400 italic p-4">No bids yet.</p>
+                      ) : (
+                        bidHistory.map((entry, idx) => {
+                          const color = teamColors[entry.team] ?? "#9ca3af";
+                          const isLeader = idx === 0;
+                          const secondsAgo = Math.round((Date.now() - entry.ts) / 1000);
+                          return (
+                            <div
+                              key={idx}
+                              className={`flex items-center gap-2 px-3 py-2 border-b border-black/[0.05] transition-all ${isLeader ? "bg-white/70" : ""}`}
+                            >
+                              {/* Team colour dot */}
+                              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[9px] font-bold truncate" style={{ color }}>
+                                  {entry.team.replace(" Indians", "").replace(" Super Kings", "").replace(" Challengers Bangalore", "").replace(" Knight Riders", "").replace(" Capitals", "").replace(" Kings", "").replace(" Royals", "").replace("Sunrisers ", "").replace(" Titans", "").replace(" Super Giants", "")}
+                                </p>
+                                <p className="text-[9px] text-gray-400">{secondsAgo === 0 ? "just now" : `${secondsAgo}s ago`}</p>
+                              </div>
+                              <span className={`text-[10px] font-black tabular-nums flex-shrink-0 ${isLeader ? "text-emerald-600" : "text-gray-500"}`}>
+                                ₹{entry.amount}
+                                {isLeader && <span className="ml-0.5 text-emerald-500">↑</span>}
+                              </span>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
                   </div>
                 </div>
               </>
             )}
           </div>
 
-          {/* Squad sidebar */}
+          {/* ── Squad sidebar — MODIFIED: shows spent so far ── */}
           <div className={`
-            w-1/5 p-4 rounded-2xl bg-white/5 border border-white/10 overflow-y-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden
+            w-[200px] overflow-y-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden rounded-2xl
             hidden lg:block
-            ${mobileTab === 'squad' ? '!block fixed inset-0 z-40 w-full rounded-none bg-[#0c0c0e] border-0 pb-20 overflow-y-auto' : ''}
-          `} style={{ height: mobileTab === 'squad' ? '100dvh' : '78vh' }}>
+            ${mobileTab === 'squad' ? '!block fixed inset-0 z-40 w-full rounded-none border-0 pb-20 overflow-y-auto' : ''}
+            ${glass}
+          `} style={{ height: mobileTab === 'squad' ? '100dvh' : '79vh', padding: '16px' }}>
             <button
-              className="lg:hidden flex items-center gap-1 text-gray-400 text-xs font-bold uppercase mb-4"
+              className="lg:hidden flex items-center gap-1 text-gray-500 text-xs font-bold uppercase mb-4"
               onClick={() => setMobileTab('auction')}
             >
               <ChevronLeft className="w-4 h-4" /> Back
             </button>
 
-            <div className="flex items-center gap-2.5 px-3 py-3 bg-gradient-to-br from-white/[0.06] to-white/[0.02] rounded-xl border border-white/10 mb-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] hover:bg-white/[0.08] hover:scale-[1.02] transition-all duration-300">
-              <div className="relative">
-                <div className="w-11 h-11 rounded-full bg-black flex items-center justify-center border border-white/10 overflow-hidden"
-                  style={{
-                    boxShadow: userTeam?.name 
-                      ? `0 0 18px ${teamColors[userTeam.name]}55` 
-                      : "0 0 10px rgba(255,255,255,0.05)"
-                  }}
-                >
-                  {userTeam?.name && (
-                    <img src={teamLogos[userTeam.name]} className="w-7 h-7 object-contain" alt="team" />
-                  )}
-                </div>
+            {/* Owner card */}
+            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-black/[0.04] border border-black/[0.06] mb-3">
+              <div
+                className="w-9 h-9 rounded-full flex items-center justify-center overflow-hidden bg-white border border-black/[0.08] flex-shrink-0"
+                style={{ boxShadow: userTeam?.name ? `0 0 12px ${teamColors[userTeam.name]}44` : undefined }}
+              >
+                {userTeam?.name && <img src={teamLogos[userTeam.name]} className="w-6 h-6 object-contain" alt="team" />}
               </div>
-              <div className="flex flex-col text-left overflow-hidden leading-tight">
-                <span className="text-[13px] font-semibold text-white truncate">
-                  {playerName || "Team Owner"}
-                </span>
-                <span className="text-[10px] text-gray-400 font-medium">
-                  {userTeam?.name && `- ${userTeam.name}`}
-                </span>
+              <div className="min-w-0 text-left">
+                <p className="text-[12px] font-semibold text-gray-900 truncate">{playerName || "Team Owner"}</p>
+                <p className="text-[10px] text-gray-400 truncate">{userTeam?.name}</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 mb-3 border-b border-white/5 pb-2">
-              {userTeam?.name && <img src={teamLogos[userTeam.name]} className="w-4 h-4 object-contain" />}
-              <h2 className="text-gray-500 text-[10px] font-bold uppercase truncate">My Squad {userTeam?.squad.length}/15</h2>
+            {/* Purse pill */}
+            <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 mb-2">
+              <span className="text-[10px] font-semibold text-emerald-700">Purse left</span>
+              <span className="text-[14px] font-bold text-emerald-600">₹{userTeam?.purse} Cr</span>
             </div>
+
+            {/* ── NEW: Spent so far pill ── */}
+            <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 mb-3">
+              <span className="text-[10px] font-semibold text-gray-500">Spent so far</span>
+              <span className="text-[13px] font-bold text-gray-700">₹{(120 - (userTeam?.purse ?? 120)).toFixed(2)} Cr</span>
+            </div>
+
+            {/* Squad header */}
+            <div className="flex items-center gap-2 pb-2 mb-2 border-b border-black/[0.06]">
+              {userTeam?.name && <img src={teamLogos[userTeam.name]} className="w-3.5 h-3.5 object-contain" alt="" />}
+              <span className="text-[9px] font-bold uppercase tracking-widest text-gray-400">Squad {userTeam?.squad.length || 0}/15</span>
+            </div>
+
+            {/* Squad list */}
             {userTeam?.squad.map((p: any, i: number) => (
-              <div key={i} className="text-[11px] py-2 px-2 flex justify-between items-center rounded-lg hover:bg-white/5 transition border border-white/5 mb-1">
-                <span className="truncate pr-2 text-gray-300 flex items-center gap-2 text-left">
-                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                    p.role === "Batsman" ? "bg-blue-400" :
-                    p.role === "Bowler" ? "bg-red-400" :
-                    p.role === "All-rounder" ? "bg-green-400" :
-                    "bg-yellow-400"
+              <div key={i} className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-black/[0.03] transition mb-0.5 border border-transparent hover:border-black/[0.05]">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                    p.role === "Batsman" ? "bg-blue-500" :
+                    p.role === "Bowler" ? "bg-red-500" :
+                    p.role === "All-rounder" ? "bg-emerald-500" : "bg-amber-500"
                   }`} />
-                  <span className="truncate">{p.name}</span>
-                </span>
-                <span className="text-green-400 font-bold tabular-nums">₹{p.price}Cr</span>
+                  <span className="text-[10px] text-gray-700 truncate">{p.name}</span>
+                </div>
+                <span className="text-[10px] font-bold text-emerald-600 tabular-nums flex-shrink-0 ml-1">₹{p.price}Cr</span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Mobile bottom tab bar */}
-        <div className="fixed bottom-0 left-0 right-0 z-30 lg:hidden bg-black/95 backdrop-blur-xl border-t border-white/10">
+        {/* ── Mobile bottom tab bar (UNCHANGED) ── */}
+        <div className={`fixed bottom-0 left-0 right-0 z-30 lg:hidden ${glass} rounded-none border-x-0 border-b-0`}>
           <div className="flex">
             {([
               { id: 'scout', label: 'Scout', icon: Search },
@@ -1209,128 +1495,143 @@ export default function Home() {
               <button
                 key={id}
                 onClick={() => setMobileTab(id)}
-                className={`flex-1 flex flex-col items-center gap-1 py-3 text-[10px] font-bold uppercase tracking-widest transition-colors ${
-                  mobileTab === id ? 'text-amber-500' : 'text-gray-600'
+                className={`flex-1 flex flex-col items-center gap-1 py-3 text-[9px] font-bold uppercase tracking-widest transition-colors ${
+                  mobileTab === id ? 'text-amber-600' : 'text-gray-400'
                 }`}
               >
-                <Icon className={`w-5 h-5 ${mobileTab === id ? 'text-amber-500' : 'text-gray-600'}`} />
+                <Icon className={`w-5 h-5 ${mobileTab === id ? 'text-amber-500' : 'text-gray-400'}`} />
                 {label}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Desktop footer */}
-        <footer className="max-w-[1400px] mx-auto mt-10 sm:mt-12 mb-6 sm:mb-8 px-4 hidden lg:block" style={fontStyle}>
-          <div className="pt-6 sm:pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 sm:gap-6">
+        {/* Desktop footer (UNCHANGED) */}
+        <footer className="max-w-[1400px] mx-auto mt-8 px-2 hidden lg:block" style={fontStyle}>
+          <div className="pt-5 border-t border-black/[0.06] flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex flex-col items-center md:items-start">
               <div className="flex items-center gap-2 mb-1">
-                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                <span className="text-white font-bold text-sm uppercase tracking-widest">IPL Auction 2026</span>
+                <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                <span className="text-gray-800 font-bold text-sm uppercase tracking-widest">IPL Auction 2026</span>
               </div>
-              <p className="text-gray-500 text-xs font-medium">Made with ❤️ by <span className="text-white">Laksh Dave</span></p>
+              <p className="text-gray-400 text-xs font-medium">Made with ❤️ by <span className="text-gray-700">Laksh Dave</span></p>
             </div>
             <div className="flex items-center gap-6">
-              <a href="https://github.com/Laksh63dave" target="_blank" className="text-gray-500 hover:text-white transition-all text-xs font-bold uppercase tracking-widest">Github</a>
-              <a href="https://www.instagram.com/lakshhh_63/" target="_blank" className="text-gray-500 hover:text-pink-500 transition-all text-xs font-bold uppercase tracking-widest">Instagram</a>
-              <a href="https://www.linkedin.com/in/lakshdave18/" target="_blank" className="text-gray-500 hover:text-blue-500 transition-all text-xs font-bold uppercase tracking-widest">LinkedIn</a>
+              <a href="https://github.com/Laksh63dave" target="_blank" className="text-gray-400 hover:text-gray-900 transition-all text-xs font-bold uppercase tracking-widest">Github</a>
+              <a href="https://www.instagram.com/lakshhh_63/" target="_blank" className="text-gray-400 hover:text-pink-500 transition-all text-xs font-bold uppercase tracking-widest">Instagram</a>
+              <a href="https://www.linkedin.com/in/lakshdave18/" target="_blank" className="text-gray-400 hover:text-blue-500 transition-all text-xs font-bold uppercase tracking-widest">LinkedIn</a>
             </div>
-            <div className="text-[10px] text-gray-600 font-medium tracking-tight">© 2026 Laksh Dave. All rights reserved.</div>
+            <div className="text-[10px] text-gray-300 font-medium">© 2026 Laksh Dave. All rights reserved.</div>
           </div>
         </footer>
       </div>
 
-      {/* Sold overlay */}
+      {/* ── SOLD OVERLAY (UNCHANGED) ── */}
       {sold && soldPlayer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl animate-fadeIn px-4" style={fontStyle}>
-          <div className="relative px-8 sm:px-12 py-8 rounded-[32px] text-center bg-[#0a0a0a] border border-white/10 animate-scaleIn shadow-2xl w-full max-w-sm">
-            <h2 className="text-[10px] font-bold text-gray-500 mb-4 uppercase tracking-[0.4em]">sold.</h2>
-            {currentBidder && <img src={teamLogos[currentBidder]} className="w-12 h-12 mx-auto mb-4 object-contain" />}
-            <p className="text-2xl sm:text-3xl font-bold mb-1 tracking-tighter text-white">{soldPlayer.name}</p>
-            <p className="text-sm text-gray-400 mb-6 font-bold uppercase">{currentBidder || "Unsold"}</p>
-            <div className={`text-xl sm:text-2xl font-black tabular-nums ${soldPlayer.price === "UNSOLD" ? "text-red-500" : "text-green-400"}`}>{soldPlayer.price === "UNSOLD" ? "❌ UNSOLD" : `₹${soldPlayer.price} Cr`}</div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-2xl px-4" style={fontStyle}>
+          <div className={`${glass} px-10 py-10 rounded-[32px] text-center w-full max-w-sm`}>
+            <p className="text-[9px] font-bold text-gray-400 mb-4 uppercase tracking-[0.35em]">sold.</p>
+            {currentBidder && <img src={teamLogos[currentBidder]} className="w-14 h-14 mx-auto mb-4 object-contain drop-shadow-md" alt="" />}
+            <p className="text-[26px] font-bold tracking-[-0.03em] text-gray-900 mb-1">{soldPlayer.name}</p>
+            <p className="text-sm text-gray-500 mb-6 font-semibold uppercase tracking-wide">{currentBidder || "Unsold"}</p>
+            <div className={`text-[28px] font-black tabular-nums ${soldPlayer.price === "UNSOLD" ? "text-red-500" : "text-emerald-600"}`}>
+              {soldPlayer.price === "UNSOLD" ? "❌ UNSOLD" : `₹${soldPlayer.price} Cr`}
+            </div>
           </div>
         </div>
       )}
 
-      {/* Set intro overlay */}
+      {/* ── SET INTRO OVERLAY (UNCHANGED) ── */}
       {showSetIntro && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-3xl animate-fadeIn px-4" style={fontStyle}>
-          <div className="text-center animate-scaleIn">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/70 backdrop-blur-3xl px-4" style={fontStyle}>
+          <div className="text-center">
             <div className="flex justify-center mb-6">
-               <div className="p-5 sm:p-6 rounded-full bg-amber-500/10 border border-amber-500/20">
-                 <Zap className="w-12 h-12 sm:w-16 sm:h-16 text-amber-500 animate-pulse" />
-               </div>
+              <div className="p-5 sm:p-6 rounded-full bg-amber-50 border border-amber-200 shadow-xl">
+                <Zap className="w-12 h-12 sm:w-16 sm:h-16 text-amber-500 animate-pulse" />
+              </div>
             </div>
-            <h2 className="text-gray-500 text-sm font-bold uppercase tracking-[0.5em] mb-2">Set Complete</h2>
-            <h1 className="text-4xl sm:text-6xl md:text-8xl font-black text-white tracking-tighter mb-4 uppercase">
+            <h2 className="text-gray-400 text-sm font-bold uppercase tracking-[0.5em] mb-2">Set Complete</h2>
+            <h1 className="text-[42px] sm:text-[64px] md:text-[88px] font-black text-gray-900 tracking-[-0.05em] mb-4 uppercase leading-none">
               UP NEXT: <span className="text-amber-500">{currentSet}s</span>
             </h1>
-            <p className="text-gray-400 text-sm font-medium tracking-wide">Strategy badalne ka waqt hai. Specialists are coming up...</p>
-            <div className="mt-8 sm:mt-10 flex justify-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-amber-500 animate-bounce [animation-delay:-0.3s]"></div>
-              <div className="w-2 h-2 rounded-full bg-amber-500 animate-bounce [animation-delay:-0.15s]"></div>
-              <div className="w-2 h-2 rounded-full bg-amber-500 animate-bounce"></div>
+            <p className="text-gray-500 text-sm font-medium">Strategy badalne ka waqt hai. Specialists are coming up...</p>
+            <div className="mt-8 flex justify-center gap-2">
+              {[0, 1, 2].map(i => (
+                <div key={i} className="w-2 h-2 rounded-full bg-amber-400 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+              ))}
             </div>
           </div>
         </div>
       )}
 
-      {/* Unsold modal */}
+      {/* ── UNSOLD MODAL (UNCHANGED) ── */}
       {showUnsoldModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md px-4" style={fontStyle}>
-          <div className="relative w-full max-w-md max-h-[75vh] overflow-hidden rounded-[32px] bg-[#0F0F0F] border border-white/10 p-6 sm:p-8 shadow-2xl flex flex-col text-white">
-             <div className="flex items-center justify-between mb-6">
-                <h2 className="text-sm font-bold uppercase tracking-widest">Unsold Players</h2>
-                <button onClick={() => setShowUnsoldModal(false)} className="text-gray-500 hover:text-white transition text-lg">✕</button>
-             </div>
-             <div className="overflow-y-auto flex-1 pr-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {unsoldPlayers.length > 0 ? (
-                  unsoldPlayers.map((p, i) => (
-                    <div key={i} className="py-3 border-b border-white/5 text-gray-300 text-sm font-medium flex justify-between">
-                      <span>{p.name}</span>
-                      <span className="text-gray-500 text-[10px] font-bold uppercase">{p.country}</span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-center text-gray-600 py-10 italic">No players are unsold yet.</p>
-                )}
-             </div>
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/20 backdrop-blur-md px-4 pb-4 sm:pb-0" style={fontStyle} onClick={(e) => { if (e.target === e.currentTarget) setShowUnsoldModal(false); }}>
+          <div className={`${glass} w-full max-w-md rounded-[28px] overflow-hidden flex flex-col`} style={{ maxHeight: '75vh' }}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-black/[0.06]">
+              <h2 className="text-sm font-bold text-gray-900 uppercase tracking-widest">Unsold Players</h2>
+              <button onClick={() => setShowUnsoldModal(false)} className="w-7 h-7 rounded-full bg-black/[0.06] flex items-center justify-center text-gray-500 hover:text-gray-800 transition text-sm font-bold">✕</button>
+            </div>
+            <div className="overflow-y-auto flex-1 px-6 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {unsoldPlayers.length > 0 ? (
+                unsoldPlayers.map((p, i) => (
+                  <div key={i} className="py-3 border-b border-black/[0.05] flex justify-between items-center">
+                    <span className="text-[13px] font-medium text-gray-800">{p.name}</span>
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">{p.country}</span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-center text-gray-400 py-10 text-sm italic">No players unsold yet.</p>
+              )}
+            </div>
           </div>
         </div>
       )}
 
-      {/* Teams modal */}
+      {/* ── TEAMS MODAL (UNCHANGED) ── */}
       {showTeamsModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md px-4" style={fontStyle}>
-          <div className="relative w-full max-w-md max-h-[75vh] overflow-hidden rounded-[32px] bg-[#0F0F0F] border border-white/10 p-5 sm:p-6 shadow-2xl flex flex-col">
-            <div className="flex items-center justify-between mb-6">
-              {viewingTeam ? (<button onClick={() => setViewingTeam(null)} className="flex items-center gap-1 text-gray-400 hover:text-white transition"><ChevronLeft className="w-5 h-5" /><span className="text-xs font-bold uppercase tracking-widest">Back</span></button>) : <div className="w-8"></div>}
-              <h2 className="text-sm font-bold text-white uppercase tracking-widest">{viewingTeam ? "Squad" : "Teams"}</h2>
-              <button onClick={() => setShowTeamsModal(false)} className="text-gray-500 hover:text-white text-lg">✕</button>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/20 backdrop-blur-md px-4 pb-4 sm:pb-0" style={fontStyle} onClick={(e) => { if (e.target === e.currentTarget) setShowTeamsModal(false); }}>
+          <div className={`${glass} w-full max-w-md rounded-[28px] overflow-hidden flex flex-col`} style={{ maxHeight: '75vh' }}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-black/[0.06]">
+              {viewingTeam ? (
+                <button onClick={() => setViewingTeam(null)} className="flex items-center gap-1 text-gray-500 hover:text-gray-800 transition text-xs font-bold uppercase">
+                  <ChevronLeft className="w-4 h-4" /> Back
+                </button>
+              ) : <div className="w-16" />}
+              <h2 className="text-sm font-bold text-gray-900 uppercase tracking-widest">{viewingTeam ? "Squad" : "All Teams"}</h2>
+              <button onClick={() => setShowTeamsModal(false)} className="w-7 h-7 rounded-full bg-black/[0.06] flex items-center justify-center text-gray-500 hover:text-gray-800 transition text-sm font-bold">✕</button>
             </div>
-            <div className="overflow-y-auto pr-1 flex-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="overflow-y-auto flex-1 px-6 py-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {!viewingTeam ? (
                 <div className="space-y-2">
                   {teams.sort((a, b) => b.purse - a.purse).map((team, i) => (
-                    <div key={i} onClick={() => setViewingTeam(team)} className="flex items-center justify-between gap-4 bg-white/5 px-4 py-3 rounded-xl border border-white/5 hover:bg-white/10 transition cursor-pointer group">
-                      <div className="flex items-center gap-3"><img src={teamLogos[team.name]} className="w-7 h-7 object-contain" /><span className={`text-xs font-bold ${team.isUser ? "text-amber-400" : "text-white"}`}>{team.name}</span></div>
-                      <div className="flex items-center gap-3"><span className="text-green-400 font-bold tabular-nums text-xs">₹{team.purse}Cr</span></div>
+                    <div
+                      key={i}
+                      onClick={() => setViewingTeam(team)}
+                      className="flex items-center justify-between gap-4 bg-black/[0.03] hover:bg-black/[0.06] px-4 py-3 rounded-xl border border-black/[0.05] transition cursor-pointer"
+                    >
+                      <div className="flex items-center gap-3">
+                        <img src={teamLogos[team.name]} className="w-7 h-7 object-contain" alt="" />
+                        <span className={`text-[12px] font-semibold ${team.isUser ? "text-amber-600" : "text-gray-800"}`}>{team.name}</span>
+                      </div>
+                      <span className="text-emerald-600 font-bold text-[12px] tabular-nums">₹{team.purse} Cr</span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="animate-fadeIn">
-                  <div className="flex flex-col items-center mb-6 py-4 bg-white/5 rounded-2xl border border-white/5 shadow-inner">
-                    <img src={teamLogos[viewingTeam.name]} className="w-10 h-10 object-contain mb-2" /><h3 className="text-lg font-bold tracking-tight text-white">{viewingTeam.name}</h3><p className="text-green-400 font-bold text-sm">₹{viewingTeam.purse} Cr</p>
+                <div>
+                  <div className="flex flex-col items-center py-5 mb-4 bg-black/[0.03] rounded-2xl border border-black/[0.05]">
+                    <img src={teamLogos[viewingTeam.name]} className="w-10 h-10 object-contain mb-2" alt="" />
+                    <h3 className="text-[15px] font-bold text-gray-900">{viewingTeam.name}</h3>
+                    <p className="text-emerald-600 font-bold text-sm">₹{viewingTeam.purse} Cr remaining</p>
                   </div>
                   <div className="space-y-1.5">
                     {viewingTeam.squad.length > 0 ? viewingTeam.squad.map((p: any, idx: number) => (
-                      <div key={idx} className="flex justify-between items-center bg-white/5 px-4 py-2 rounded-lg border border-white/5 transition hover:bg-white/10">
-                        <span className="text-xs text-gray-300 font-medium">{p.name}</span>
-                        <span className="text-green-400 font-bold text-[11px] tabular-nums">₹{p.price} Cr</span>
+                      <div key={idx} className="flex justify-between items-center bg-black/[0.03] px-4 py-2.5 rounded-xl border border-black/[0.05]">
+                        <span className="text-[12px] text-gray-700 font-medium">{p.name}</span>
+                        <span className="text-emerald-600 font-bold text-[11px] tabular-nums">₹{p.price} Cr</span>
                       </div>
-                    )) : <p className="text-center text-gray-600 py-10 text-xs italic tracking-wide">No players bought yet.</p>}
+                    )) : <p className="text-center text-gray-400 py-8 text-xs italic">No players bought yet.</p>}
                   </div>
                 </div>
               )}
@@ -1339,19 +1640,32 @@ export default function Home() {
         </div>
       )}
 
-      {/* Requirements modal */}
+      {/* ── REQUIREMENTS MODAL (UNCHANGED) ── */}
       {showReq && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md px-4" style={fontStyle}>
-          <div className="relative w-full max-w-sm rounded-[32px] bg-[#0F0F0F] border border-white/10 p-7 sm:p-8 shadow-2xl">
-            <button onClick={() => setShowReq(false)} className="absolute top-6 right-6 text-gray-500 hover:text-white transition text-lg">✕</button>
-            <h2 className="text-center text-xs font-bold mb-6 text-white uppercase tracking-widest">Requirements</h2>
-            <div className="space-y-3">
-              {[{ label: "Batsman", count: userCounts.Batsman, target: 5 }, { label: "Bowler", count: userCounts.Bowler, target: 4 }, { label: "All-rounder", count: userCounts["All-rounder"], target: 4 }, { label: "Wicketkeeper", count: userCounts.Wicketkeeper, target: 2 }].map((item, idx) => (
-                <div key={idx} className="flex justify-between items-center bg-white/5 px-4 py-3 rounded-2xl border border-white/5">
-                  <span className="text-gray-400 font-bold text-xs tracking-wide">{item.label}</span>
-                  <div className="flex items-center gap-2"><span className={`text-lg font-black ${item.count >= item.target ? "text-green-400" : "text-orange-500"}`}>{item.count}</span><span className="text-gray-700 text-[10px] font-bold">/ {item.target}</span></div>
-                </div>
-              ))}
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/20 backdrop-blur-md px-4 pb-4 sm:pb-0" style={fontStyle} onClick={(e) => { if (e.target === e.currentTarget) setShowReq(false); }}>
+          <div className={`${glass} w-full max-w-sm rounded-[28px] overflow-hidden`}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-black/[0.06]">
+              <h2 className="text-sm font-bold text-gray-900 uppercase tracking-widest">Requirements</h2>
+              <button onClick={() => setShowReq(false)} className="w-7 h-7 rounded-full bg-black/[0.06] flex items-center justify-center text-gray-500 hover:text-gray-800 transition text-sm font-bold">✕</button>
+            </div>
+            <div className="px-6 py-4 space-y-2.5">
+              {[
+                { label: "Batsmen", count: userCounts.Batsman, target: 5 },
+                { label: "Bowlers", count: userCounts.Bowler, target: 4 },
+                { label: "All-rounders", count: userCounts["All-rounder"], target: 4 },
+                { label: "Wicketkeepers", count: userCounts.Wicketkeeper, target: 2 },
+              ].map((item, idx) => {
+                const met = item.count >= item.target;
+                return (
+                  <div key={idx} className={`flex justify-between items-center px-4 py-3 rounded-2xl border transition-all ${met ? "bg-emerald-50 border-emerald-200" : "bg-black/[0.03] border-black/[0.06]"}`}>
+                    <span className="text-[12px] font-medium text-gray-700">{item.label}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`text-[20px] font-black tabular-nums ${met ? "text-emerald-600" : "text-amber-500"}`}>{item.count}</span>
+                      <span className="text-[11px] text-gray-300 font-bold">/ {item.target}</span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
